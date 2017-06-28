@@ -327,7 +327,7 @@ public:
 
 	neg(const string &ph1, const string &ph2, bool _unsign) : calculation(ph1, ph2, ""), unsign(_unsign) {}
 	virtual instruction* copy() { return new neg(*this); }
-	virtual void execute() { res = ~imm1; }
+	virtual void execute() { res = -imm1; }
 };
 class rem : public calculation { // & remu
 public:
