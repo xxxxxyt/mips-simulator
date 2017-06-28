@@ -10,20 +10,25 @@
 #include <stdlib.h>
 using namespace std;
 
+#define div __div
+#define xor __xor
+
 const int MAXN = 1e6 + 5;
+const int MAXL = 205;
 
 int reg[34]; // lo 32, hi 33
 char mem[MAXN];
-int heap_top = 0;
+int heap_top = 0, ins_top = 0;
+map<string, int> text_label, data_label;
 
 // ============================== tools =============================
-int string_to_int(const string &str) {
+int string_to_int(string str) {
 	int res = 0;
-	int i = str.length() - 1;
-	while (i >= 0 && (str[i] < '0' || str[i] > '9')) --i;
-	while (i >= 0 && (str[i] >= '0'  && str[i] <= '9'))
-		res *= 10, res += str[i--] - '0';
-	if (i >= 0 && str[i] == '-') res = -res;
+	int l = str.length(), i = 0;
+	while (i < l && (str[i] < '0' || str[i] > '9')) ++i;
+	while (i < l && (str[i] >= '0'  && str[i] <= '9'))
+		res *= 10, res += str[i++] - '0';
+	if (i < l && str[i] == '-') res = -res;
 	return res;
 }
 const string REG_STR[] = {"$0", "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24", "$25", "$26", "$27", "$28", "$29", "$30", "$31", "$lo", "$hi"};
@@ -81,6 +86,7 @@ public:
 	virtual void write_back() {}
 	virtual ~instruction() {}
 };
+vector<instruction*> ins_vec;
 
 class loading : public instruction {
 public:
@@ -89,9 +95,13 @@ public:
 	int pos, val;
 
 	loading(const string &_rdset, const string &_address) :
-		instruction(), rdset(string_to_reg(_rdset)), address(_address), val(0) {}
+		instruction(), rdset(string_to_reg(_rdset)), address(_address), pos(-1), val(0) {}
 	virtual instruction* copy() { return new loading(*this); }
 	virtual void execute() {
+		if (text_label.find(address) != text_label.end()) {
+			pos = text_label[address];
+			return;
+		}
 		int i = address.find('(');
 		int j = address.find(')');
 		int offset = string_to_int(address.substr(0, i));
@@ -138,11 +148,13 @@ public:
 	int pos, val;
 	
 	storing(const string &_rsrc, const string &_address) :
-		instruction(), rsrc(string_to_reg(_rsrc)), address(_address), val(0) {
+		instruction(), rsrc(string_to_reg(_rsrc)), address(_address), val(0), pos(-1) {
+		if (data_label.find(_address) != data_label.end()) pos = data_label[_address];
 	}
 	virtual instruction* copy() { return new storing(*this); }
 	virtual void data_prepare() { val = reg[rsrc]; }
 	virtual void execute() {
+		if (pos != -1) return;
 		int i = address.find('(');
 		int j = address.find(')');
 		int offset = string_to_int(address.substr(0, i));
@@ -264,8 +276,8 @@ public:
 	virtual void write_back() {
 		if (para == 3) reg[rdset] = llres;
 		else {
-			reg[32] = (llres & 0xffffffff); // lo
-			reg[33] = ((llres & 0xffffffff00000000) >> 32); // hi
+			reg[32] = llres; // lo
+			reg[33] = (llres >> 32); // hi
 		}
 	}
 };
@@ -313,7 +325,7 @@ class neg : public calculation { // & negu
 public:
 	bool unsign;
 
-	neg(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), unsign(_unsign) {}
+	neg(const string &ph1, const string &ph2, bool _unsign) : calculation(ph1, ph2, ""), unsign(_unsign) {}
 	virtual instruction* copy() { return new neg(*this); }
 	virtual void execute() { res = ~imm1; }
 };
@@ -328,26 +340,197 @@ public:
 		else res = imm1 % imm2; 
 	}
 };
+class seq : public calculation{
+public:
+	seq(const string &ph1, const string &ph2, const string &ph3) : calculation(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new seq(*this); }
+	virtual void execute() { res = imm1 == imm2; }
+};
+class sge : public calculation {
+public:
+	sge(const string &ph1, const string &ph2, const string &ph3) : calculation(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new sge(*this); }
+	virtual void execute() { res = imm1 >= imm2; }
+};
+class sgt : public calculation {
+public:
+	sgt(const string &ph1, const string &ph2, const string &ph3) : calculation(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new sgt(*this); }
+	virtual void execute() { res = imm1 > imm2; }
+};
+class sle : public calculation {
+public:
+	sle(const string &ph1, const string &ph2, const string &ph3) : calculation(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new sle(*this); }
+	virtual void execute() { res = imm1 <= imm2; }
+};
+class slt : public calculation {
+public:
+	slt(const string &ph1, const string &ph2, const string &ph3) : calculation(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new slt(*this); }
+	virtual void execute() { res = imm1 < imm2; }
+};
+class sne : public calculation {
+public:
+	sne(const string &ph1, const string &ph2, const string &ph3) : calculation(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new sne(*this); }
+	virtual void execute() { res = imm1 != imm2; }
+};
 
+class jump : public instruction { // b, j, jr
+public:
+	int rsrc, pos;
 
+	jump(const string &label) {
+		if (text_label.find(label) != text_label.end()) pos = text_label[label];
+		else rsrc = string_to_reg(label);
+	}
+	virtual instruction* copy() { return new jump(*this); }
+	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
+	virtual void write_back() { ins_top = pos; }
+};
+class jal : public instruction {
+public:
+	int rsrc, pos;
+
+	jal(const string &label) : rsrc(-1), pos(-1) {
+		if (text_label.find(label) != text_label.end()) pos = text_label[label];
+		else rsrc = string_to_reg(label);
+	}
+	virtual instruction* copy() { return new jal(*this); }
+	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
+	virtual void write_back() { 
+		reg[31] = ins_top;
+		ins_top = pos; 
+	}
+};
+class jb : public instruction {
+public:
+	int rsrc1, rsrc2;
+	int imm1, imm2;
+	int pos;
+	bool judge;
+
+	jb(const string &_rsrc1, const string &_rsrc2, const string &label) {
+		rsrc1 = string_to_reg(_rsrc1);
+		rsrc2 = string_to_reg(_rsrc2);
+		if (rsrc1 == -1) imm1 = string_to_int(_rsrc1);
+		if (rsrc2 == -1) imm1 = string_to_int(_rsrc2);
+		pos = text_label[label];
+	}
+	virtual instruction* copy() { return new jb(*this); }
+	virtual void data_prepare() {
+		if (rsrc1 != -1) imm1 = reg[rsrc1];
+		if (rsrc2 != -1) imm2 = reg[rsrc2];
+	}
+	virtual void write_back() { if (judge) ins_top = pos; }
+};
+class beq : public jb {
+public:
+	beq(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new beq(*this); }
+	virtual void execute() { judge = imm1 == imm2; }
+};
+class bne : public jb {
+public:
+	bne(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new bne(*this); }
+	virtual void execute() { judge = imm1 != imm2; }
+};
+class bge : public jb {
+public:
+	bge(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new bge(*this); }
+	virtual void execute() { judge = imm1 >= imm2; }
+};
+class ble : public jb {
+public:
+	ble(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new ble(*this); }
+	virtual void execute() { judge = imm1 <= imm2; }
+};
+class bgt : public jb {
+public:
+	bgt(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new bgt(*this); }
+	virtual void execute() { judge = imm1 > imm2; }
+};
+class blt : public jb {
+public:
+	blt(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	virtual instruction* copy() { return new blt(*this); }
+	virtual void execute() { judge = imm1 < imm2; }
+};
+
+class syscall : public instruction {
+public:
+	istream &is;
+	ostream &os;
+	int type, val_a0, val_a1, res;
+	char str[MAXL];
+
+	syscall(istream &_is, ostream &_os) : is(_is), os(_os) {}
+	virtual instruction* copy() { return new syscall(*this); }
+	virtual void data_prepare() {
+		type = reg[2]; // $v0
+		switch (type) {
+		case 1: case 4: case 9: case 17: val_a0 = reg[4]; // $a0
+		case 8: val_a1 = reg[5]; // $a1
+		}
+	}
+	virtual void execute() {
+		switch (type) {
+		case 1: os << val_a0; break;
+		case 5: is >> res; break;
+		case 8: is.getline(str, val_a1, '\0'); break;
+		case 10: system("exit"); break;
+		case 17: exit(val_a0); break;
+		}
+	}
+	virtual void memory_access() {
+		int i;
+		switch (type) {
+		case 4: 
+			i = val_a0;
+			while (mem[i]) os << mem[i++];
+			break;
+		case 8:
+			int l = strlen(str);
+			i = 0;
+			while (i < l) mem[val_a0 + i] = str[i++];
+			break;
+		}
+	}
+	virtual void write_back() {
+		switch (type) {
+		case 5: reg[2] = res; break;
+		case 9: 
+			reg[2] = heap_top;
+			heap_top += val_a0;
+			break;
+		}
+	}
+};
 
 // ============================= interpreter ==================================
 class interpreter {
-private:
-	vector<instruction*> ins_vec;
-	map<string, int> text_label, data_label;
-
 public:
-	interpreter() { reg[29] = MAXN - 1; } // $sp stack_top
-	void interprete(ifstream &source, ifstream &input) {
-		read_in(source);
-		execute_text(input);
+	ifstream &src;
+	istream &is;
+	ostream &os;
+
+	interpreter(ifstream &_src, istream &_is, ostream &_os) : src(_src), is(_is), os(_os) { 
+		reg[29] = MAXN - 1; } // $sp stack_top
+	void interprete() {
+		read_in();
+		execute_text();
 	}
-	void read_in(ifstream &ifs) {
-		const int MAXL = 105;
+	void read_in() {
 		char str[MAXL];
+		int ins_cnt = 0;
+		vector<string> name_vec, ph1_vec, ph2_vec, ph3_vec;
 		bool text_block = false;
-		while (ifs.getline(str, MAXL, '\n')) {
+		while (src.getline(str, MAXL, '\n')) {
 			string tmp = "";
 			int i = 0, l = strlen(str);
 			while (str[i] == ' ' || str[i] == '\t') ++i;
@@ -375,10 +558,10 @@ public:
 						++i;
 						tmp = get_phrase(str, i, l);
 						int n = string_to_int(tmp);
-						mem[heap_top++] = (char)(n & 0xff);
-						if (m > 1) mem[heap_top++] = (char)((n & 0xff00) >> 8);
-						if (m > 2) mem[heap_top++] = (char)((n & 0xff0000) >> 16);
-						if (m > 2) mem[heap_top++] = (char)((n & 0xff000000) >> 24);
+						for (int k = 0; k < m; ++k) {
+							mem[heap_top++] = (char)(n & 0xff);
+							n >>= 8;
+						}
 					}
 				}
 				else if (tmp == "space") {
@@ -390,43 +573,100 @@ public:
 				else if (tmp == "data" || tmp == "text") {
 					text_block = tmp == "text";
 				}
-			}
+			} 
 			else if (str[l - 1] == ':') { // label:
 				string tmp = get_phrase(str, i, l - 1);
-				if (text_block) text_label[tmp] = ins_vec.size();
+				if (text_block) text_label[tmp] = ins_cnt;
 				else data_label[tmp] = heap_top;
 			}
-			else { // code in text
-				//cout << str << endl;
+			else { // text instruction
 				string name = get_phrase(str, i, l); ++i;
-				string ph1, ph2, ph3;
-				ph1 = get_phrase(str, i, l); ++i;
-				ph2 = get_phrase(str, i, l); ++i;
-				ph3 = get_phrase(str, i, l); ++i;
-				//cout << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
-				instruction *ptr;
-				// loading instruction
-				if (name == "la") ptr = new la(ph1, ph2);
-				if (name == "lb") ptr = new lb(ph1, ph2);
-				if (name == "lh") ptr = new lh(ph1, ph2);
-				if (name == "lw") ptr = new lw(ph1, ph2);
-				// storing instruction
-				if (name == "sb") ptr = new sb(ph1, ph2);
-				if (name == "sh") ptr = new sh(ph1, ph2);
-				if (name == "sw") ptr = new sw(ph1, ph2);
-				// assignment instruction
-				if (name == "li" || name == "move") ptr = new assignment(ph1, ph2);
-				if (name == "mfhi") ptr = new mfhi(ph1);
-				if (name == "mflo") ptr = new mflo(ph1);
-				// calculation instruction
-
-				// jump instruction
+				if (name == "") continue;
+				++ins_cnt;
+				name_vec.push_back(name);
+				ph1_vec.push_back(get_phrase(str, i, l)); ++i;
+				ph2_vec.push_back(get_phrase(str, i, l)); ++i;
+				ph3_vec.push_back(get_phrase(str, i, l)); ++i;
 			}
 		}
+		for(int i = 0; i < ins_cnt; ++i) {
+			string name = name_vec[i];
+			string ph1 = ph1_vec[i];
+			string ph2 = ph2_vec[i];
+			string ph3 = ph3_vec[i];
+			//cout << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
+			instruction *ptr = NULL;
+			// loading instruction
+			if (name == "la") ptr = new la(ph1, ph2);
+			if (name == "lb") ptr = new lb(ph1, ph2);
+			if (name == "lh") ptr = new lh(ph1, ph2);
+			if (name == "lw") ptr = new lw(ph1, ph2);
+			// storing instruction
+			if (name == "sb") ptr = new sb(ph1, ph2);
+			if (name == "sh") ptr = new sh(ph1, ph2);
+			if (name == "sw") ptr = new sw(ph1, ph2);
+			// assignment instruction
+			if (name == "li" || name == "move") ptr = new assignment(ph1, ph2);
+			if (name == "mfhi") ptr = new mfhi(ph1);
+			if (name == "mflo") ptr = new mflo(ph1);
+			// calculation instruction
+			if (name == "add") ptr = new add(ph1, ph2, ph3, false);
+			if (name == "addu" || name == "addiu") ptr = new add(ph1, ph2, ph3, true);
+			if (name == "sub") ptr = new sub(ph1, ph2, ph3, false);
+			if (name == "subu") ptr = new sub(ph1, ph2, ph3, true);
+			if (name == "mul") ptr = new mul(ph1, ph2, ph3, false);
+			if (name == "mulu") ptr = new mul(ph1, ph2, ph3, true);
+			if (name == "div") ptr = new div(ph1, ph2, ph3, false);
+			if (name == "divu") ptr = new div(ph1, ph2, ph3, true);
+			if (name == "xor") ptr = new xor(ph1, ph2, ph3, false);
+			if (name == "xoru") ptr = new xor(ph1, ph2, ph3, true);
+			if (name == "neg") ptr = new neg(ph1, ph2, false);
+			if (name == "negu") ptr = new neg(ph1, ph2, true);
+			if (name == "rem") ptr = new rem(ph1, ph2, ph3, false);
+			if (name == "remu") ptr = new rem(ph1, ph2, ph3, true);
+			if (name == "seq") ptr = new seq(ph1, ph2, ph3);
+			if (name == "sne") ptr = new sne(ph1, ph2, ph3);
+			if (name == "sge") ptr = new sge(ph1, ph2, ph3);
+			if (name == "sle") ptr = new sle(ph1, ph2, ph3);
+			if (name == "sgt") ptr = new sgt(ph1, ph2, ph3);
+			if (name == "slt") ptr = new slt(ph1, ph2, ph3);
+			// jump instruction
+			if (name == "b" || name == "j" || name == "jr") ptr = new jump(ph1);
+			if (name == "jal" || name == "jalr") ptr = new jal(ph1);
+			if (name == "beq") ptr = new beq(ph1, ph2, ph3);
+			if (name == "bne") ptr = new bne(ph1, ph2, ph3);
+			if (name == "bge") ptr = new bge(ph1, ph2, ph3);
+			if (name == "ble") ptr = new ble(ph1, ph2, ph3);
+			if (name == "bgt") ptr = new bgt(ph1, ph2, ph3);
+			if (name == "blt") ptr = new blt(ph1, ph2, ph3);
+			if (name == "beqz") ptr = new beq(ph1, "0", ph3);
+			if (name == "bnez") ptr = new bne(ph1, "0", ph3);
+			if (name == "bgez") ptr = new bge(ph1, "0", ph3);
+			if (name == "blez") ptr = new ble(ph1, "0", ph3);
+			if (name == "bgtz") ptr = new bgt(ph1, "0", ph3);
+			if (name == "bltz") ptr = new blt(ph1, "0", ph3);
+			// syscall instruction
+			if (name == "syscall") ptr = new syscall(is, os);
+			if (name == "nop") ptr = new instruction();
+			ins_vec.push_back(ptr);
+		}
 	}
-	void execute_text(ifstream &input) {}
+	void execute_text() {
+		ins_top = text_label["main"];
+		int ins_vec_sz = ins_vec.size();
+		int cnt = 0;
+		while (ins_top < ins_vec_sz) {
+			cout << ins_top << endl; // 257 - 274 loop!
+			instruction *ptr = ins_vec[ins_top++]->copy();
+			ptr->data_prepare();
+			ptr->execute();
+			ptr->memory_access();
+			ptr->write_back();
+			delete ptr;
+		}
+	}
 	~interpreter() {
-		vector<instruction*>::iterator it = ins_vec.begin();
+		auto it = ins_vec.begin();
 		while (it != ins_vec.end()) delete *(it++);
 	}
 };
@@ -439,8 +679,8 @@ int main() {
 	source.open("gcd-5090379042-jiaxiao.s");
 	if (!source) cout << "Fail to open file!\n";
 	
-	interpreter itp;
-	itp.interprete(source, input);
+	interpreter itp(source, input, cout);
+	itp.interprete();
 
 	source.close();
 	input.close();
