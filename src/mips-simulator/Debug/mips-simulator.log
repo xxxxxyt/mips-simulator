@@ -1,0 +1,4 @@
+﻿  mips-simulator.cpp
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator\mips-simulator.cpp(12): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+  mips-simulator.vcxproj -> D:\Users\DELL\Documents\Git\mips-simulator\src\mips-simulator\Debug\mips-simulator.exe
+  mips-simulator.vcxproj -> D:\Users\DELL\Documents\Git\mips-simulator\src\mips-simulator\Debug\mips-simulator.pdb (Partial PDB)

@@ -1,0 +1,12 @@
+﻿  mips-simulator.cpp
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(13): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(22): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(95): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(96): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(146): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(147): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(265): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(352): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips-simulator\mips-simulator.cpp(396): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  mips-simulator.vcxproj -> D:\Users\DELL\Documents\Git\mips-simulator\src\x64\Debug\mips-simulator.exe
+  mips-simulator.vcxproj -> D:\Users\DELL\Documents\Git\mips-simulator\src\x64\Debug\mips-simulator.pdb (Partial PDB)
