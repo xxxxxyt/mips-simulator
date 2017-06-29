@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <iomanip>
 #include <memory>
 #include <fstream>
 #include <cstdio>
@@ -17,18 +18,19 @@ const int MAXN = 1e6 + 5;
 const int MAXL = 205;
 
 int reg[34]; // lo 32, hi 33
-char mem[MAXN];
 int heap_top = 0, ins_top = 0;
+char mem[MAXN];
 map<string, int> text_label, data_label;
 
 // ============================== tools =============================
 int string_to_int(string str) {
 	int res = 0;
 	int l = str.length(), i = 0;
-	while (i < l && (str[i] < '0' || str[i] > '9')) ++i;
+	bool flag = false;
+	while (i < l && (str[i] < '0' || str[i] > '9')) flag = str[i] == '-', ++i;
 	while (i < l && (str[i] >= '0'  && str[i] <= '9'))
 		res *= 10, res += str[i++] - '0';
-	if (i < l && str[i] == '-') res = -res;
+	if (flag) res = -res;
 	return res;
 }
 const string REG_STR[] = {"$0", "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24", "$25", "$26", "$27", "$28", "$29", "$30", "$31", "$lo", "$hi"};
@@ -90,24 +92,28 @@ vector<instruction*> ins_vec;
 
 class loading : public instruction {
 public:
-	int rdset;
+	int rdset, rsrc;
 	string address;
-	int pos, val;
+	int val, pos, offset;
 
 	loading(const string &_rdset, const string &_address) :
-		instruction(), rdset(string_to_reg(_rdset)), address(_address), pos(-1), val(0) {}
-	virtual instruction* copy() { return new loading(*this); }
-	virtual void execute() {
-		if (text_label.find(address) != text_label.end()) {
-			pos = text_label[address];
+		instruction(), rsrc(-1), address(_address), val(0), pos(-1), offset(0) {
+		rdset = string_to_reg(_rdset);
+		if (data_label.find(address) != data_label.end()) {
+			pos = data_label[address];
 			return;
 		}
 		int i = address.find('(');
 		int j = address.find(')');
-		int offset = string_to_int(address.substr(0, i));
-		int rsrc = string_to_reg(address.substr(i + 1, j));
-		pos = reg[rsrc] + offset;
+		offset = string_to_int(address.substr(0, i));
+		rsrc = string_to_reg(address.substr(i + 1, j - i - 1));
 	}
+	virtual instruction* copy() { return new loading(*this); }
+	virtual void data_prepare() { 
+		if (pos != -1) return;
+		pos = reg[rsrc]; 
+	}
+	virtual void execute() { pos += offset; }
 	virtual void write_back() { reg[rdset] = val; }
 };
 class la : public loading {
@@ -120,73 +126,64 @@ class lb : public loading {
 public:
 	lb(const string &ph1, const string &ph2) : loading(ph1, ph2) {}
 	virtual instruction* copy() { return new lb(*this); }
-	virtual void memory_access() { val |= mem[pos]; }
+	virtual void memory_access() { memcpy(&val, mem + pos, 1); }
 };
 class lh : public loading {
 public:
 	lh(const string &ph1, const string &ph2) : loading(ph1, ph2) {}
 	virtual instruction* copy() { return new lh(*this); }
-	virtual void memory_access() {
-		val |= mem[pos];
-		val |= (mem[pos + 1] << 8);
-	}
+	virtual void memory_access() { memcpy(&val, mem + pos, 2); }
 };
 class lw : public loading {
 public:
 	lw(const string &ph1, const string &ph2) : loading(ph1, ph2) {}
 	virtual instruction* copy() { return new lw(*this); }
-	virtual void memory_access() {
-		for (int k = 0, t = 0; k < 4; ++k, t += 8)
-			val |= (mem[pos + k] << t);
-	}
+	virtual void memory_access() { memcpy(&val, mem + pos, 4); }
 };
 
 class storing : public instruction {
 public:
-	int rsrc;
+	int rdset, rsrc;
 	string address;
-	int pos, val;
-	
-	storing(const string &_rsrc, const string &_address) :
-		instruction(), rsrc(string_to_reg(_rsrc)), address(_address), val(0), pos(-1) {
-		if (data_label.find(_address) != data_label.end()) pos = data_label[_address];
-	}
-	virtual instruction* copy() { return new storing(*this); }
-	virtual void data_prepare() { val = reg[rsrc]; }
-	virtual void execute() {
-		if (pos != -1) return;
+	int val, pos, offset;
+
+	storing(const string &_rdset, const string &_address) :
+		instruction(), rsrc(-1), address(_address), val(0), pos(-1), offset(0) {
+		rdset = string_to_reg(_rdset);
+		if (data_label.find(address) != data_label.end()) {
+			pos = data_label[address];
+			return;
+		}
 		int i = address.find('(');
 		int j = address.find(')');
-		int offset = string_to_int(address.substr(0, i));
-		int rsrc1 = string_to_reg(address.substr(i + 1, j));
-		pos = reg[rsrc1] + offset;
+		offset = string_to_int(address.substr(0, i));
+		rsrc = string_to_reg(address.substr(i + 1, j - i - 1));
 	}
+	virtual instruction* copy() { return new storing(*this); }
+	virtual void data_prepare() {
+		val = reg[rdset];
+		if (pos != -1) return;
+		pos = reg[rsrc];
+	}
+	virtual void execute() { pos += offset; }
 };
 class sb : public storing {
 public:
 	sb(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sb(*this); }
-	virtual void memory_access() { mem[pos] = (char)(val & 0xff); }
+	virtual void memory_access() { memcpy(mem + pos, &val, 1); }
 };
 class sh : public storing {
 public:
 	sh(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sh(*this); }
-	virtual void memory_access() {
-		mem[pos] = (char)(val & 0xff);
-		mem[pos + 1] = (char)((val & 0xff00) >> 8);
-	}
+	virtual void memory_access() { memcpy(mem + pos, &val, 2); }
 };
 class sw : public storing {
 public:
 	sw(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sw(*this); }
-	virtual void memory_access() {
-		mem[pos] = (char)(val & 0xff);
-		mem[pos + 1] = (char)((val & 0xff00) >> 8);
-		mem[pos + 2] = (char)((val & 0xff0000) >> 16);
-		mem[pos + 3] = (char)((val & 0xff000000) >> 24);
-	}
+	virtual void memory_access() { memcpy(mem + pos, &val, 4); }
 };
 
 class assignment : public instruction {
@@ -336,6 +333,7 @@ public:
 	rem(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), unsign(_unsign) {}
 	virtual instruction* copy() { return new rem(*this); }
 	virtual void execute() { 
+		//cout << "rem: " << imm1 << " " << imm2 << endl;
 		if (unsign) res = (unsigned int)imm1 % (unsigned int)imm2;
 		else res = imm1 % imm2; 
 	}
@@ -381,13 +379,15 @@ class jump : public instruction { // b, j, jr
 public:
 	int rsrc, pos;
 
-	jump(const string &label) {
+	jump(const string &label) : rsrc(-1), pos(-1) {
 		if (text_label.find(label) != text_label.end()) pos = text_label[label];
 		else rsrc = string_to_reg(label);
 	}
 	virtual instruction* copy() { return new jump(*this); }
 	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
-	virtual void write_back() { ins_top = pos; }
+	virtual void write_back() { 
+		ins_top = pos; 
+	}
 };
 class jal : public instruction {
 public:
@@ -404,60 +404,60 @@ public:
 		ins_top = pos; 
 	}
 };
-class jb : public instruction {
+class branch : public instruction {
 public:
 	int rsrc1, rsrc2;
 	int imm1, imm2;
 	int pos;
 	bool judge;
 
-	jb(const string &_rsrc1, const string &_rsrc2, const string &label) {
+	branch(const string &_rsrc1, const string &_rsrc2, const string &label) {
 		rsrc1 = string_to_reg(_rsrc1);
 		rsrc2 = string_to_reg(_rsrc2);
 		if (rsrc1 == -1) imm1 = string_to_int(_rsrc1);
-		if (rsrc2 == -1) imm1 = string_to_int(_rsrc2);
+		if (rsrc2 == -1) imm2 = string_to_int(_rsrc2);
 		pos = text_label[label];
 	}
-	virtual instruction* copy() { return new jb(*this); }
+	virtual instruction* copy() { return new branch(*this); }
 	virtual void data_prepare() {
 		if (rsrc1 != -1) imm1 = reg[rsrc1];
 		if (rsrc2 != -1) imm2 = reg[rsrc2];
 	}
 	virtual void write_back() { if (judge) ins_top = pos; }
 };
-class beq : public jb {
+class beq : public branch {
 public:
-	beq(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	beq(const string &ph1, const string  &ph2, const string &ph3) : branch(ph1, ph2, ph3) {}
 	virtual instruction* copy() { return new beq(*this); }
 	virtual void execute() { judge = imm1 == imm2; }
 };
-class bne : public jb {
+class bne : public branch {
 public:
-	bne(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	bne(const string &ph1, const string  &ph2, const string &ph3) : branch(ph1, ph2, ph3) {}
 	virtual instruction* copy() { return new bne(*this); }
 	virtual void execute() { judge = imm1 != imm2; }
 };
-class bge : public jb {
+class bge : public branch {
 public:
-	bge(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	bge(const string &ph1, const string  &ph2, const string &ph3) : branch(ph1, ph2, ph3) {}
 	virtual instruction* copy() { return new bge(*this); }
 	virtual void execute() { judge = imm1 >= imm2; }
 };
-class ble : public jb {
+class ble : public branch {
 public:
-	ble(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	ble(const string &ph1, const string  &ph2, const string &ph3) : branch(ph1, ph2, ph3) {}
 	virtual instruction* copy() { return new ble(*this); }
 	virtual void execute() { judge = imm1 <= imm2; }
 };
-class bgt : public jb {
+class bgt : public branch {
 public:
-	bgt(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	bgt(const string &ph1, const string  &ph2, const string &ph3) : branch(ph1, ph2, ph3) {}
 	virtual instruction* copy() { return new bgt(*this); }
 	virtual void execute() { judge = imm1 > imm2; }
 };
-class blt : public jb {
+class blt : public branch {
 public:
-	blt(const string &ph1, const string  &ph2, const string &ph3) : jb(ph1, ph2, ph3) {}
+	blt(const string &ph1, const string  &ph2, const string &ph3) : branch(ph1, ph2, ph3) {}
 	virtual instruction* copy() { return new blt(*this); }
 	virtual void execute() { judge = imm1 < imm2; }
 };
@@ -479,11 +479,13 @@ public:
 		}
 	}
 	virtual void execute() {
+		//cout << "type: " << type << endl;
+		//cout << "val_a0: " << val_a0 << endl;
 		switch (type) {
 		case 1: os << val_a0; break;
 		case 5: is >> res; break;
 		case 8: is.getline(str, val_a1, '\0'); break;
-		case 10: system("exit"); break;
+		case 10: exit(0); break;
 		case 17: exit(val_a0); break;
 		}
 	}
@@ -511,6 +513,8 @@ public:
 		}
 	}
 };
+
+//ofstream file;
 
 // ============================= interpreter ==================================
 class interpreter {
@@ -558,10 +562,13 @@ public:
 						++i;
 						tmp = get_phrase(str, i, l);
 						int n = string_to_int(tmp);
+						memcpy(mem + heap_top, &n, m);
+						/*
 						for (int k = 0; k < m; ++k) {
 							mem[heap_top++] = (char)(n & 0xff);
 							n >>= 8;
 						}
+						*/
 					}
 				}
 				else if (tmp == "space") {
@@ -594,7 +601,7 @@ public:
 			string ph1 = ph1_vec[i];
 			string ph2 = ph2_vec[i];
 			string ph3 = ph3_vec[i];
-			//cout << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
+			//cout << i << ": " << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
 			instruction *ptr = NULL;
 			// loading instruction
 			if (name == "la") ptr = new la(ph1, ph2);
@@ -639,12 +646,12 @@ public:
 			if (name == "ble") ptr = new ble(ph1, ph2, ph3);
 			if (name == "bgt") ptr = new bgt(ph1, ph2, ph3);
 			if (name == "blt") ptr = new blt(ph1, ph2, ph3);
-			if (name == "beqz") ptr = new beq(ph1, "0", ph3);
-			if (name == "bnez") ptr = new bne(ph1, "0", ph3);
-			if (name == "bgez") ptr = new bge(ph1, "0", ph3);
-			if (name == "blez") ptr = new ble(ph1, "0", ph3);
-			if (name == "bgtz") ptr = new bgt(ph1, "0", ph3);
-			if (name == "bltz") ptr = new blt(ph1, "0", ph3);
+			if (name == "beqz") ptr = new beq(ph1, "0", ph2);
+			if (name == "bnez") ptr = new bne(ph1, "0", ph2);
+			if (name == "bgez") ptr = new bge(ph1, "0", ph2);
+			if (name == "blez") ptr = new ble(ph1, "0", ph2);
+			if (name == "bgtz") ptr = new bgt(ph1, "0", ph2);
+			if (name == "bltz") ptr = new blt(ph1, "0", ph2);
 			// syscall instruction
 			if (name == "syscall") ptr = new syscall(is, os);
 			if (name == "nop") ptr = new instruction();
@@ -656,13 +663,20 @@ public:
 		int ins_vec_sz = ins_vec.size();
 		int cnt = 0;
 		while (ins_top < ins_vec_sz) {
-			cout << ins_top << endl; // 257 - 274 loop!
+			//cout << "\nins: " << ins_top << endl;
 			instruction *ptr = ins_vec[ins_top++]->copy();
 			ptr->data_prepare();
 			ptr->execute();
 			ptr->memory_access();
 			ptr->write_back();
 			delete ptr;
+			/*
+			for (int i = 0; i < 16; ++i)
+				file << setw(5) << reg[i] << " ";
+			for (int i = 32; i < 34; ++i)
+				file << reg[i] << " ";
+			file << endl;
+			*/
 		}
 	}
 	~interpreter() {
@@ -671,15 +685,20 @@ public:
 	}
 };
 
+//int main(int argc, char *argv[]) {
 int main() {
+
+	//file.open("haha.txt");
+	//if(!file) cout << "Fail to open file!\n";
 
 	ifstream source;
 	ifstream input;
 	
+	//source.open(argv[1]);
 	source.open("gcd-5090379042-jiaxiao.s");
-	if (!source) cout << "Fail to open file!\n";
+	//if (!source) cout << "Fail to open file!\n";
 	
-	interpreter itp(source, input, cout);
+	interpreter itp(source, cin, cout);
 	itp.interprete();
 
 	source.close();
