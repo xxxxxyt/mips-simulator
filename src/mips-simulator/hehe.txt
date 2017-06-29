@@ -1,0 +1,601 @@
+451-475
+279-282
+257-278
+
+0:    li $a0, 256 
+1:    li $v0, 9 
+2:    syscall   
+3:    sw $v0, _buffer 
+4:    jr $ra  
+5:    jal _buffer_init  
+6:    add $fp, $zero, $sp
+7:    jal _func_main  
+8:    move $a0, $v0 
+9:    li $v0, 17 
+10:    syscall   
+11:    sw $fp, -212($sp) 
+12:    add $fp, $sp, -4
+13:    add $sp, $fp, -216
+14:    sw $ra, 0($sp) 
+15:    lw $8, 0($fp) 
+16:    sub $9, $8, 4
+17:    lw $10, 0($9) 
+18:    lw $11, -4($fp) 
+19:    sub $12, $11, 4
+20:    lw $13, 0($12) 
+21:    sw $10, -8($fp) 
+22:    ble $10, $13, _end_if_286
+23:    lw $8, -4($fp) 
+24:    sub $9, $8, 4
+25:    lw $10, 0($9) 
+26:    sw $10, -8($fp) 
+27:    li $8, 0 
+28:    sw $8, -12($fp) 
+29:    lw $8, -12($fp) 
+30:    lw $9, -8($fp) 
+31:    bge $8, $9, _end_loop_212
+32:    lw $8, 0($fp) 
+33:    lw $9, -12($fp) 
+34:    add $10, $8, $9
+35:    lb $11, 0($10) 
+36:    lw $12, -4($fp) 
+37:    add $13, $12, $9
+38:    lb $14, 0($13) 
+39:    sw $11, -16($fp) 
+40:    sw $14, -20($fp) 
+41:    beq $11, $14, _end_if_287
+42:    lw $8, -16($fp) 
+43:    lw $9, -20($fp) 
+44:    slt $10, $8, $9
+45:    move $v0, $10 
+46:    sw $10, -76($fp) 
+47:    b _end_func_____built_in_string_less  
+48:    lw $8, -12($fp) 
+49:    add $8, $8, 1
+50:    sw $8, -12($fp) 
+51:    b _begin_loop_212  
+52:    lw $8, -4($fp) 
+53:    sub $9, $8, 4
+54:    lw $10, 0($9) 
+55:    lw $11, -8($fp) 
+56:    slt $12, $11, $10
+57:    move $v0, $12 
+58:    sw $12, -88($fp) 
+59:    b _end_func_____built_in_string_less  
+60:    lw $ra, 0($sp) 
+61:    add $sp, $fp, 4
+62:    lw $fp, -208($fp) 
+63:    jr $ra  
+64:    sw $fp, -188($sp) 
+65:    add $fp, $sp, -4
+66:    add $sp, $fp, -192
+67:    sw $ra, 0($sp) 
+68:    lw $8, 0($fp) 
+69:    sub $9, $8, 4
+70:    lw $10, 0($9) 
+71:    lw $11, -4($fp) 
+72:    sub $12, $11, 4
+73:    lw $13, 0($12) 
+74:    beq $10, $13, _end_if_288
+75:    move $v0, $zero 
+76:    b _end_func_____built_in_string_equal  
+77:    lw $8, 0($fp) 
+78:    sub $9, $8, 4
+79:    lw $10, 0($9) 
+80:    li $11, 0 
+81:    sw $10, -12($fp) 
+82:    sw $11, -8($fp) 
+83:    lw $8, -8($fp) 
+84:    lw $9, -12($fp) 
+85:    bge $8, $9, _end_loop_213
+86:    lw $8, 0($fp) 
+87:    lw $9, -8($fp) 
+88:    add $10, $8, $9
+89:    lb $11, 0($10) 
+90:    lw $12, -4($fp) 
+91:    add $13, $12, $9
+92:    lb $14, 0($13) 
+93:    beq $11, $14, _end_if_289
+94:    move $v0, $zero 
+95:    b _end_func_____built_in_string_equal  
+96:    lw $8, -8($fp) 
+97:    add $8, $8, 1
+98:    sw $8, -8($fp) 
+99:    b _begin_loop_213  
+100:    li $8, 1 
+101:    move $v0, $8 
+102:    b _end_func_____built_in_string_equal  
+103:    lw $ra, 0($sp) 
+104:    add $sp, $fp, 4
+105:    lw $fp, -184($fp) 
+106:    jr $ra  
+107:    sw $fp, -188($sp) 
+108:    add $fp, $sp, -4
+109:    add $sp, $fp, -192
+110:    sw $ra, 0($sp) 
+111:    lw $8, 0($fp) 
+112:    sub $9, $8, 4
+113:    lw $10, 0($9) 
+114:    lw $11, -4($fp) 
+115:    sub $12, $11, 4
+116:    lw $13, 0($12) 
+117:    beq $10, $13, _end_if_290
+118:    li $8, 1 
+119:    move $v0, $8 
+120:    b _end_func_____built_in_string_inequal  
+121:    lw $8, 0($fp) 
+122:    sub $9, $8, 4
+123:    lw $10, 0($9) 
+124:    li $11, 0 
+125:    sw $10, -12($fp) 
+126:    sw $11, -8($fp) 
+127:    lw $8, -8($fp) 
+128:    lw $9, -12($fp) 
+129:    bge $8, $9, _end_loop_214
+130:    lw $8, 0($fp) 
+131:    lw $9, -8($fp) 
+132:    add $10, $8, $9
+133:    lb $11, 0($10) 
+134:    lw $12, -4($fp) 
+135:    add $13, $12, $9
+136:    lb $14, 0($13) 
+137:    beq $11, $14, _end_if_291
+138:    li $8, 1 
+139:    move $v0, $8 
+140:    b _end_func_____built_in_string_inequal  
+141:    lw $8, -8($fp) 
+142:    add $8, $8, 1
+143:    sw $8, -8($fp) 
+144:    b _begin_loop_214  
+145:    move $v0, $zero 
+146:    b _end_func_____built_in_string_inequal  
+147:    lw $ra, 0($sp) 
+148:    add $sp, $fp, 4
+149:    lw $fp, -184($fp) 
+150:    jr $ra  
+151:    sw $fp, -132($sp) 
+152:    add $fp, $sp, -4
+153:    add $sp, $fp, -136
+154:    sw $ra, 0($sp) 
+155:    lw $8, -4($fp) 
+156:    sw $8, -4($sp) 
+157:    lw $9, 0($fp) 
+158:    sw $9, -8($sp) 
+159:    jal _func_____built_in_string_less  
+160:    sw $v0, -8($fp) 
+161:    lw $8, -8($fp) 
+162:    move $v0, $8 
+163:    b _end_func_____built_in_string_greater  
+164:    lw $ra, 0($sp) 
+165:    add $sp, $fp, 4
+166:    lw $fp, -128($fp) 
+167:    jr $ra  
+168:    sw $fp, -220($sp) 
+169:    add $fp, $sp, -4
+170:    add $sp, $fp, -224
+171:    sw $ra, 0($sp) 
+172:    lw $8, 0($fp) 
+173:    sub $9, $8, 4
+174:    lw $10, 0($9) 
+175:    lw $11, -4($fp) 
+176:    sub $12, $11, 4
+177:    lw $13, 0($12) 
+178:    sw $10, -8($fp) 
+179:    ble $10, $13, _end_if_292
+180:    lw $8, -4($fp) 
+181:    sub $9, $8, 4
+182:    lw $10, 0($9) 
+183:    sw $10, -8($fp) 
+184:    li $8, 0 
+185:    sw $8, -12($fp) 
+186:    lw $8, -12($fp) 
+187:    lw $9, -8($fp) 
+188:    bge $8, $9, _end_loop_215
+189:    lw $8, 0($fp) 
+190:    lw $9, -12($fp) 
+191:    add $10, $8, $9
+192:    lb $11, 0($10) 
+193:    lw $12, -4($fp) 
+194:    add $13, $12, $9
+195:    lb $14, 0($13) 
+196:    sw $11, -16($fp) 
+197:    sw $14, -20($fp) 
+198:    beq $11, $14, _end_if_293
+199:    lw $8, -16($fp) 
+200:    lw $9, -20($fp) 
+201:    slt $10, $8, $9
+202:    move $v0, $10 
+203:    sw $10, -76($fp) 
+204:    b _end_func_____built_in_string_less_equal  
+205:    lw $8, -12($fp) 
+206:    add $8, $8, 1
+207:    sw $8, -12($fp) 
+208:    b _begin_loop_215  
+209:    lw $8, 0($fp) 
+210:    sub $9, $8, 4
+211:    lw $10, 0($9) 
+212:    lw $11, -4($fp) 
+213:    sub $12, $11, 4
+214:    lw $13, 0($12) 
+215:    sle $14, $10, $13
+216:    move $v0, $14 
+217:    sw $14, -96($fp) 
+218:    b _end_func_____built_in_string_less_equal  
+219:    lw $ra, 0($sp) 
+220:    add $sp, $fp, 4
+221:    lw $fp, -216($fp) 
+222:    jr $ra  
+223:    sw $fp, -132($sp) 
+224:    add $fp, $sp, -4
+225:    add $sp, $fp, -136
+226:    sw $ra, 0($sp) 
+227:    lw $8, -4($fp) 
+228:    sw $8, -4($sp) 
+229:    lw $9, 0($fp) 
+230:    sw $9, -8($sp) 
+231:    jal _func_____built_in_string_less_equal  
+232:    sw $v0, -8($fp) 
+233:    lw $8, -8($fp) 
+234:    move $v0, $8 
+235:    b _end_func_____built_in_string_greater_equal  
+236:    lw $ra, 0($sp) 
+237:    add $sp, $fp, 4
+238:    lw $fp, -128($fp) 
+239:    jr $ra  
+240:    sw $fp, -128($sp) 
+241:    add $fp, $sp, -4
+242:    add $sp, $fp, -132
+243:    sw $ra, 0($sp) 
+244:    lw $8, 0($fp) 
+245:    li $v0, 4 
+246:    move $a0, $8 
+247:    syscall   
+248:    la $8, _static_171 
+249:    move $9, $8 
+250:    li $v0, 4 
+251:    move $a0, $9 
+252:    syscall   
+253:    lw $ra, 0($sp) 
+254:    add $sp, $fp, 4
+255:    lw $fp, -124($fp) 
+256:    jr $ra  
+257:    sw $fp, -256($sp) 
+258:    add $fp, $sp, -4
+259:    add $sp, $fp, -260
+260:    sw $ra, 0($sp) 
+261:    lw $8, 0($fp) 
+262:    sub $9, $8, 4
+263:    lw $10, 0($9) 
+264:    li $11, 1 
+265:    sw $10, -4($fp) 
+266:    bne $11, $10, _end_if_294
+267:    lw $8, 0($fp) 
+268:    move $v0, $8 
+269:    b _end_func_calc  
+270:    lw $8, -4($fp) 
+271:    div $9, $8, 2
+272:    sub $10, $9, 1
+273:    lw $11, 0($fp) 
+274:    sw $11, -4($sp) 
+275:    sw $zero, -8($sp) 
+276:    sw $10, -12($sp) 
+277:    sw $9, -8($fp) 
+278:    jal _func_____built_in_substring  
+279:    sw $v0, -64($fp) 
+280:    lw $8, -64($fp) 
+281:    sw $8, -4($sp) 
+282:    jal _func_calc  
+283:    sw $v0, -52($fp) 
+284:    lw $8, -52($fp) 
+285:    lw $9, -4($fp) 
+286:    sub $10, $9, 1
+287:    lw $11, 0($fp) 
+288:    sw $11, -4($sp) 
+289:    lw $12, -8($fp) 
+290:    sw $12, -8($sp) 
+291:    sw $10, -12($sp) 
+292:    sw $8, -12($fp) 
+293:    jal _func_____built_in_substring  
+294:    sw $v0, -80($fp) 
+295:    lw $8, -80($fp) 
+296:    sw $8, -4($sp) 
+297:    jal _func_calc  
+298:    sw $v0, -68($fp) 
+299:    lw $8, -68($fp) 
+300:    lw $9, -12($fp) 
+301:    sw $9, -4($sp) 
+302:    sw $8, -8($sp) 
+303:    sw $8, -16($fp) 
+304:    jal _func_____built_in_string_less  
+305:    sw $v0, -84($fp) 
+306:    lw $8, -84($fp) 
+307:    beqz $8, _else_295 
+308:    lw $8, -12($fp) 
+309:    sw $8, -4($sp) 
+310:    lw $9, -16($fp) 
+311:    sw $9, -8($sp) 
+312:    jal _func_____built_in_string_concatenate  
+313:    sw $v0, -128($fp) 
+314:    lw $8, -128($fp) 
+315:    move $v0, $8 
+316:    b _end_func_calc  
+317:    b _end_if_295  
+318:    lw $8, -12($fp) 
+319:    sw $8, -4($sp) 
+320:    lw $9, -16($fp) 
+321:    sw $9, -8($sp) 
+322:    jal _func_____built_in_string_equal  
+323:    sw $v0, -88($fp) 
+324:    lw $8, -88($fp) 
+325:    beqz $8, _else_296 
+326:    lw $8, -12($fp) 
+327:    add $9, $8, 0
+328:    lb $10, 0($9) 
+329:    lw $11, -16($fp) 
+330:    add $12, $11, 0
+331:    lb $13, 0($12) 
+332:    sw $10, -20($fp) 
+333:    sw $13, -24($fp) 
+334:    bge $10, $13, _end_if_298
+335:    lw $8, -12($fp) 
+336:    sw $8, -4($sp) 
+337:    lw $9, -16($fp) 
+338:    sw $9, -8($sp) 
+339:    jal _func_____built_in_string_concatenate  
+340:    sw $v0, -120($fp) 
+341:    lw $8, -120($fp) 
+342:    move $v0, $8 
+343:    b _end_func_calc  
+344:    lw $8, -16($fp) 
+345:    sw $8, -4($sp) 
+346:    lw $9, -12($fp) 
+347:    sw $9, -8($sp) 
+348:    jal _func_____built_in_string_concatenate  
+349:    sw $v0, -124($fp) 
+350:    lw $8, -124($fp) 
+351:    move $v0, $8 
+352:    b _end_func_calc  
+353:    b _end_if_296  
+354:    lw $8, -16($fp) 
+355:    sw $8, -4($sp) 
+356:    lw $9, -12($fp) 
+357:    sw $9, -8($sp) 
+358:    jal _func_____built_in_string_less  
+359:    sw $v0, -92($fp) 
+360:    lw $8, -92($fp) 
+361:    beqz $8, _end_if_297 
+362:    lw $8, -16($fp) 
+363:    sw $8, -4($sp) 
+364:    lw $9, -12($fp) 
+365:    sw $9, -8($sp) 
+366:    jal _func_____built_in_string_concatenate  
+367:    sw $v0, -96($fp) 
+368:    lw $8, -96($fp) 
+369:    move $v0, $8 
+370:    b _end_func_calc  
+371:    la $8, _static_176 
+372:    move $9, $8 
+373:    li $v0, 4 
+374:    move $a0, $9 
+375:    syscall   
+376:    la $8, _static_171 
+377:    li $v0, 4 
+378:    move $a0, $8 
+379:    syscall   
+380:    lw $ra, 0($sp) 
+381:    add $sp, $fp, 4
+382:    lw $fp, -252($fp) 
+383:    jr $ra  
+384:    sw $fp, -164($sp) 
+385:    add $fp, $sp, -4
+386:    add $sp, $fp, -168
+387:    sw $ra, 0($sp) 
+388:    jal _func_____built_in_getString  
+389:    sw $v0, 0($fp) 
+390:    lw $8, 0($fp) 
+391:    sw $8, _static_172 
+392:    jal _func_____built_in_getString  
+393:    sw $v0, -4($fp) 
+394:    lw $8, -4($fp) 
+395:    sw $8, -4($sp) 
+396:    sw $8, _static_173 
+397:    jal _func_____built_in_parseInt  
+398:    sw $v0, -8($fp) 
+399:    lw $8, -8($fp) 
+400:    lw $9, _static_172 
+401:    sub $10, $9, 4
+402:    lw $11, 0($10) 
+403:    sw $8, _static_175 
+404:    bge $11, $8, _end_if_299
+405:    la $8, _static_177 
+406:    move $9, $8 
+407:    li $v0, 4 
+408:    move $a0, $9 
+409:    syscall   
+410:    la $8, _static_171 
+411:    li $v0, 4 
+412:    move $a0, $8 
+413:    syscall   
+414:    move $v0, $zero 
+415:    b _end_func_main  
+416:    lw $8, _static_175 
+417:    sub $9, $8, 1
+418:    lw $10, _static_172 
+419:    sw $10, -4($sp) 
+420:    sw $zero, -8($sp) 
+421:    sw $9, -12($sp) 
+422:    jal _func_____built_in_substring  
+423:    sw $v0, -40($fp) 
+424:    lw $8, -40($fp) 
+425:    sw $8, -4($sp) 
+426:    jal _func_calc  
+427:    sw $v0, -28($fp) 
+428:    lw $8, -28($fp) 
+429:    li $v0, 4 
+430:    move $a0, $8 
+431:    sw $8, _static_174 
+432:    syscall   
+433:    la $8, _static_171 
+434:    li $v0, 4 
+435:    move $a0, $8 
+436:    syscall   
+437:    move $v0, $zero 
+438:    b _end_func_main  
+439:    lw $ra, 0($sp) 
+440:    add $sp, $fp, 4
+441:    lw $fp, -160($fp) 
+442:    jr $ra  
+443:    lb $v0, 0($a0) 
+444:    beqz $v0, _exit_string_copy 
+445:    sb $v0, 0($a1) 
+446:    add $a0, $a0, 1
+447:    add $a1, $a1, 1
+448:    j _begin_string_copy  
+449:    sb $zero, 0($a1) 
+450:    jr $ra  
+451:    lw $a0, -4($sp) 
+452:    lw $a1, -8($sp) 
+453:    lw $a2, -12($sp) 
+454:    subu $sp, $sp, 4
+455:    sw $ra, 0($sp) 
+456:    move $t0, $a0 
+457:    sub $t1, $a2, $a1
+458:    add $t1, $t1, 1
+459:    add $a0, $t1, 5
+460:    li $v0, 9 
+461:    syscall   
+462:    sw $t1, 0($v0) 
+463:    add $v0, $v0, 4
+464:    add $a0, $t0, $a1
+465:    add $t2, $t0, $a2
+466:    lb $t3, 1($t2) 
+467:    sb $zero, 1($t2) 
+468:    move $a1, $v0 
+469:    move $t4, $v0 
+470:    jal _string_copy  
+471:    move $v0, $t4 
+472:    sb $t3, 1($t2) 
+473:    lw $ra, 0($sp) 
+474:    addu $sp, $sp, 4
+475:    jr $ra  
+476:    move $v0, $a0 
+477:    lb $v1, 0($a0) 
+478:    beqz $v1, _exit_count_string_length 
+479:    add $a0, $a0, 1
+480:    j _begin_count_string_length  
+481:    sub $v0, $a0, $v0
+482:    jr $ra  
+483:    subu $sp, $sp, 4
+484:    sw $ra, 0($sp) 
+485:    lw $a0, _buffer 
+486:    li $a1, 255 
+487:    li $v0, 8 
+488:    syscall   
+489:    jal _count_string_length  
+490:    move $a1, $v0 
+491:    add $a0, $v0, 5
+492:    li $v0, 9 
+493:    syscall   
+494:    sw $a1, 0($v0) 
+495:    add $v0, $v0, 4
+496:    lw $a0, _buffer 
+497:    move $a1, $v0 
+498:    move $t0, $v0 
+499:    jal _string_copy  
+500:    move $v0, $t0 
+501:    lw $ra, 0($sp) 
+502:    addu $sp, $sp, 4
+503:    jr $ra  
+504:    lw $a0, -4($sp) 
+505:    li $v0, 0 
+506:    move $t0, $a0 
+507:    li $t2, 1 
+508:    lb $t1, 0($t0) 
+509:    bgt $t1, 57, _begin_parse_int
+510:    blt $t1, 48, _begin_parse_int
+511:    add $t0, $t0, 1
+512:    j _count_number_pos  
+513:    sub $t0, $t0, 1
+514:    blt $t0, $a0, _finish_parse_int
+515:    lb $t1, 0($t0) 
+516:    sub $t1, $t1, 48
+517:    mul $t1, $t1, $t2
+518:    add $v0, $v0, $t1
+519:    mul $t2, $t2, 10
+520:    sub $t0, $t0, 1
+521:    j _parsing_int  
+522:    jr $ra  
+523:    lw $a0, -4($sp) 
+524:    lw $a1, -8($sp) 
+525:    subu $sp, $sp, 4
+526:    sw $ra, 0($sp) 
+527:    move $t2, $a0 
+528:    move $t3, $a1 
+529:    lw $t0, -4($a0) 
+530:    lw $t1, -4($a1) 
+531:    add $t5, $t0, $t1
+532:    add $a0, $t5, 5
+533:    li $v0, 9 
+534:    syscall   
+535:    sw $t5, 0($v0) 
+536:    add $v0, $v0, 4
+537:    move $t4, $v0 
+538:    move $a0, $t2 
+539:    move $a1, $t4 
+540:    jal _string_copy  
+541:    move $a0, $t3 
+542:    add $a1, $t4, $t0
+543:    jal _string_copy  
+544:    move $v0, $t4 
+545:    lw $ra, 0($sp) 
+546:    addu $sp, $sp, 4
+547:    jr $ra  
+548:    lw $a0, -4($sp) 
+549:    li $t0, 0 
+550:    bgez $a0, _skip_set_less_than_zero 
+551:    li $t0, 1 
+552:    neg $a0, $a0 
+553:    beqz $a0, _set_zero 
+554:    li $t1, 0 
+555:    move $t2, $a0 
+556:    move $t3, $a0 
+557:    li $t5, 10 
+558:    div $t2, $t5 
+559:    mflo $v0  
+560:    mfhi $v1  
+561:    bgtz $v0, _not_yet 
+562:    bgtz $v1, _not_yet 
+563:    j _yet  
+564:    add $t1, $t1, 1
+565:    move $t2, $v0 
+566:    j _begin_count_digit  
+567:    beqz $t0, _skip_reserve_neg 
+568:    add $t1, $t1, 1
+569:    add $a0, $t1, 5
+570:    li $v0, 9 
+571:    syscall   
+572:    sw $t1, 0($v0) 
+573:    add $v0, $v0, 4
+574:    add $t1, $t1, $v0
+575:    sb $zero, 0($t1) 
+576:    sub $t1, $t1, 1
+577:    div $t3, $t5 
+578:    mfhi $v1  
+579:    add $v1, $v1, 48
+580:    sb $v1, 0($t1) 
+581:    sub $t1, $t1, 1
+582:    mflo $t3  
+583:    bnez $t3, _continue_toString 
+584:    beqz $t0, _skip_place_neg 
+585:    li $v1, 45 
+586:    sb $v1, 0($t1) 
+587:    jr $ra  
+588:    li $a0, 6 
+589:    li $v0, 9 
+590:    syscall   
+591:    li $a0, 1 
+592:    sw $a0, 0($v0) 
+593:    add $v0, $v0, 4
+594:    li $a0, 48 
+595:    sb $a0, 0($v0) 
+596:    jr $ra  

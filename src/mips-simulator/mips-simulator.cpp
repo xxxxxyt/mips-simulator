@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include <iomanip>
 #include <memory>
 #include <fstream>
 #include <cstdio>
@@ -8,11 +7,7 @@
 #include <cstring>
 #include <vector>
 #include <map>
-#include <stdlib.h>
 using namespace std;
-
-#define div __div
-#define xor __xor
 
 const int MAXN = 1e6 + 5;
 const int MAXL = 205;
@@ -71,9 +66,6 @@ string get_str(char *str, int &i, int l) {
 	}
 	return res;
 }
-
-
-
 
 // ========================= instructions ======================
 class instruction {
@@ -278,13 +270,13 @@ public:
 		}
 	}
 };
-class div : public calculation { // & divu
+class __div : public calculation { // & __divu
 public:
 	int para, q, r;
 	bool unsign;
 
-	div(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {}
-	virtual instruction* copy() { return new div(*this); }
+	__div(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {}
+	virtual instruction* copy() { return new __div(*this); }
 	virtual void data_prepare() {
 		if (para == 2) {
 			imm2 = imm1;
@@ -310,12 +302,12 @@ public:
 		}
 	}
 };
-class xor : public calculation { // & xoru
+class __xor : public calculation { // & __xoru
 public:
 	bool unsign;
 
-	xor(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), unsign(_unsign) {}
-	virtual instruction* copy() { return new xor(*this); }
+	__xor(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), unsign(_unsign) {}
+	virtual instruction* copy() { return new __xor(*this); }
 	virtual void execute() { res = imm1 ^ imm2;}
 };
 class neg : public calculation { // & negu
@@ -333,7 +325,6 @@ public:
 	rem(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), unsign(_unsign) {}
 	virtual instruction* copy() { return new rem(*this); }
 	virtual void execute() { 
-		//cout << "rem: " << imm1 << " " << imm2 << endl;
 		if (unsign) res = (unsigned int)imm1 % (unsigned int)imm2;
 		else res = imm1 % imm2; 
 	}
@@ -474,8 +465,11 @@ public:
 	virtual void data_prepare() {
 		type = reg[2]; // $v0
 		switch (type) {
-		case 1: case 4: case 9: case 17: val_a0 = reg[4]; // $a0
-		case 8: val_a1 = reg[5]; // $a1
+		case 1: case 4: case 9: case 17: val_a0 = reg[4]; break; // $a0
+		case 8: 
+			val_a0 = reg[4]; // $a0
+			val_a1 = reg[5]; // $a1
+			break;
 		}
 	}
 	virtual void execute() {
@@ -514,8 +508,6 @@ public:
 	}
 };
 
-//ofstream file;
-
 // ============================= interpreter ==================================
 class interpreter {
 public:
@@ -524,6 +516,8 @@ public:
 	ostream &os;
 
 	interpreter(ifstream &_src, istream &_is, ostream &_os) : src(_src), is(_is), os(_os) { 
+		memset(reg, 0, sizeof reg);
+		memset(mem, 0, sizeof mem);
 		reg[29] = MAXN - 1; } // $sp stack_top
 	void interprete() {
 		read_in();
@@ -549,11 +543,12 @@ public:
 					heap_top += (n - heap_top  % n) % n;
 				}
 				else if (tmp == "ascii" || tmp == "asciiz") {
+					bool flag = tmp == "asciiz";
 					i += 2;
 					tmp = get_str(str, i, l - 1);
 					for (int i = 0; i < tmp.length(); ++i)
 						mem[heap_top++] = tmp[i];
-					if (tmp == "asciiz") mem[heap_top++] = '\0';
+					if (flag) mem[heap_top++] = 0;
 				}
 				else if (tmp == "byte" || tmp == "half" || tmp == "word") {
 					int m = tmp == "byte" ? 1 : (tmp == "half" ? 2 : 4);
@@ -563,12 +558,7 @@ public:
 						tmp = get_phrase(str, i, l);
 						int n = string_to_int(tmp);
 						memcpy(mem + heap_top, &n, m);
-						/*
-						for (int k = 0; k < m; ++k) {
-							mem[heap_top++] = (char)(n & 0xff);
-							n >>= 8;
-						}
-						*/
+						heap_top += m;
 					}
 				}
 				else if (tmp == "space") {
@@ -596,13 +586,15 @@ public:
 				ph3_vec.push_back(get_phrase(str, i, l)); ++i;
 			}
 		}
+		//ofstream ofs;
+		//ofs.open("hehe.txt");
 		for(int i = 0; i < ins_cnt; ++i) {
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i];
 			string ph2 = ph2_vec[i];
 			string ph3 = ph3_vec[i];
-			//cout << i << ": " << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
 			instruction *ptr = NULL;
+			//ofs << i << ":    " << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
 			// loading instruction
 			if (name == "la") ptr = new la(ph1, ph2);
 			if (name == "lb") ptr = new lb(ph1, ph2);
@@ -623,10 +615,10 @@ public:
 			if (name == "subu") ptr = new sub(ph1, ph2, ph3, true);
 			if (name == "mul") ptr = new mul(ph1, ph2, ph3, false);
 			if (name == "mulu") ptr = new mul(ph1, ph2, ph3, true);
-			if (name == "div") ptr = new div(ph1, ph2, ph3, false);
-			if (name == "divu") ptr = new div(ph1, ph2, ph3, true);
-			if (name == "xor") ptr = new xor(ph1, ph2, ph3, false);
-			if (name == "xoru") ptr = new xor(ph1, ph2, ph3, true);
+			if (name == "div") ptr = new __div(ph1, ph2, ph3, false);
+			if (name == "divu") ptr = new __div(ph1, ph2, ph3, true);
+			if (name == "xor") ptr = new __xor(ph1, ph2, ph3, false);
+			if (name == "xoru") ptr = new __xor(ph1, ph2, ph3, true);
 			if (name == "neg") ptr = new neg(ph1, ph2, false);
 			if (name == "negu") ptr = new neg(ph1, ph2, true);
 			if (name == "rem") ptr = new rem(ph1, ph2, ph3, false);
@@ -662,8 +654,10 @@ public:
 		ins_top = text_label["main"];
 		int ins_vec_sz = ins_vec.size();
 		int cnt = 0;
+		//ofstream ofs;
+		//ofs.open("haha.txt");
 		while (ins_top < ins_vec_sz) {
-			//cout << "\nins: " << ins_top << endl;
+			cout << "ins: " << ins_top << endl;
 			instruction *ptr = ins_vec[ins_top++]->copy();
 			ptr->data_prepare();
 			ptr->execute();
@@ -671,11 +665,9 @@ public:
 			ptr->write_back();
 			delete ptr;
 			/*
-			for (int i = 0; i < 16; ++i)
-				file << setw(5) << reg[i] << " ";
-			for (int i = 32; i < 34; ++i)
-				file << reg[i] << " ";
-			file << endl;
+			for (int i = 0; i < 15; ++i)
+				ofs << reg[i] << " ";
+			ofs << "  " << reg[32] << " " << reg[33] << endl;
 			*/
 		}
 	}
@@ -688,17 +680,14 @@ public:
 //int main(int argc, char *argv[]) {
 int main() {
 
-	//file.open("haha.txt");
-	//if(!file) cout << "Fail to open file!\n";
-
 	ifstream source;
 	ifstream input;
 	
 	//source.open(argv[1]);
-	source.open("gcd-5090379042-jiaxiao.s");
-	//if (!source) cout << "Fail to open file!\n";
-	
-	interpreter itp(source, cin, cout);
+	source.open("string_test-huyuncong.s");
+	input.open("string_test-huyuncong.in");
+
+	interpreter itp(source, input, cout);
 	itp.interprete();
 
 	source.close();
