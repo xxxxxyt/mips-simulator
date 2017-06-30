@@ -478,7 +478,7 @@ public:
 		switch (type) {
 		case 1: os << val_a0; break;
 		case 5: is >> res; break;
-		case 8: is.getline(str, val_a1, '\0'); break;
+		case 8: is >> str; break; // is.getline(str, val_a1, '\0'); break;
 		case 10: exit(0); break;
 		case 17: exit(val_a0); break;
 		}
@@ -657,7 +657,7 @@ public:
 		//ofstream ofs;
 		//ofs.open("haha.txt");
 		while (ins_top < ins_vec_sz) {
-			cout << "ins: " << ins_top << endl;
+			//cout << "ins: " << ins_top << endl;
 			instruction *ptr = ins_vec[ins_top++]->copy();
 			ptr->data_prepare();
 			ptr->execute();
@@ -684,8 +684,8 @@ int main() {
 	ifstream input;
 	
 	//source.open(argv[1]);
-	source.open("string_test-huyuncong.s");
-	input.open("string_test-huyuncong.in");
+	source.open("spill2-5100379110-daibo.s");
+	input.open("spill2-5100379110-daibo.in");
 
 	interpreter itp(source, input, cout);
 	itp.interprete();
