@@ -473,12 +473,10 @@ public:
 		}
 	}
 	virtual void execute() {
-		//cout << "type: " << type << endl;
-		//cout << "val_a0: " << val_a0 << endl;
 		switch (type) {
 		case 1: os << val_a0; break;
 		case 5: is >> res; break;
-		case 8: is >> str; break; // is.getline(str, val_a1, '\0'); break;
+		case 8: is >> str; break;
 		case 10: exit(0); break;
 		case 17: exit(val_a0); break;
 		}
@@ -586,15 +584,12 @@ public:
 				ph3_vec.push_back(get_phrase(str, i, l)); ++i;
 			}
 		}
-		//ofstream ofs;
-		//ofs.open("hehe.txt");
 		for(int i = 0; i < ins_cnt; ++i) {
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i];
 			string ph2 = ph2_vec[i];
 			string ph3 = ph3_vec[i];
 			instruction *ptr = NULL;
-			//ofs << i << ":    " << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
 			// loading instruction
 			if (name == "la") ptr = new la(ph1, ph2);
 			if (name == "lb") ptr = new lb(ph1, ph2);
@@ -654,8 +649,6 @@ public:
 		ins_top = text_label["main"];
 		int ins_vec_sz = ins_vec.size();
 		int cnt = 0;
-		//ofstream ofs;
-		//ofs.open("haha.txt");
 		while (ins_top < ins_vec_sz) {
 			//cout << "ins: " << ins_top << endl;
 			instruction *ptr = ins_vec[ins_top++]->copy();
@@ -664,11 +657,6 @@ public:
 			ptr->memory_access();
 			ptr->write_back();
 			delete ptr;
-			/*
-			for (int i = 0; i < 15; ++i)
-				ofs << reg[i] << " ";
-			ofs << "  " << reg[32] << " " << reg[33] << endl;
-			*/
 		}
 	}
 	~interpreter() {
@@ -677,17 +665,17 @@ public:
 	}
 };
 
-//int main(int argc, char *argv[]) {
-int main() {
+int main(int argc, char *argv[]) {
+//int main() {
 
 	ifstream source;
 	ifstream input;
 	
-	//source.open(argv[1]);
-	source.open("spill2-5100379110-daibo.s");
-	input.open("spill2-5100379110-daibo.in");
+	source.open(argv[1]);
+	//source.open("spill2-5100379110-daibo.s");
+	//input.open("spill2-5100379110-daibo.in");
 
-	interpreter itp(source, input, cout);
+	interpreter itp(source, cin, cout);
 	itp.interprete();
 
 	source.close();
