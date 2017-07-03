@@ -8,6 +8,8 @@
 #include <map>
 using namespace std;
 
+typedef unsigned long long ull;
+
 const int MAXN = 1e6 + 5;
 const int MAXL = 205;
 
@@ -65,13 +67,19 @@ string get_str(char *str, int &i, int l) {
 	}
 	return res;
 }
+void shut_down(int val);
 
 // ========================= instructions ======================
 class instruction {
 public:
-	int status;
+	vector<int> reg_to_read, reg_to_write;
+	int jump_type; // 0 not jump; 1 jump; 2 branch
+	bool write_to_mem;
 
-	instruction() : status(0) {}
+	instruction() : jump_type(0), write_to_mem(false) {
+		reg_to_read.clear();
+		reg_to_write.clear();
+	}
 	virtual instruction* copy() { return new instruction(*this); }
 	virtual void data_prepare() {}
 	virtual void execute() {}
@@ -80,6 +88,7 @@ public:
 	virtual ~instruction() {}
 };
 vector<instruction*> ins_vec;
+instruction *plat[5];
 
 class loading : public instruction {
 public:
@@ -90,6 +99,7 @@ public:
 	loading(const string &_rdset, const string &_address) :
 		instruction(), rsrc(-1), address(_address), val(0), pos(-1), offset(0) {
 		rdset = string_to_reg(_rdset);
+		reg_to_write.push_back(rdset);
 		if (data_label.find(address) != data_label.end()) {
 			pos = data_label[address];
 			return;
@@ -98,6 +108,7 @@ public:
 		int j = address.find(')');
 		offset = string_to_int(address.substr(0, i));
 		rsrc = string_to_reg(address.substr(i + 1, j - i - 1));
+		reg_to_read.push_back(rsrc);
 	}
 	virtual instruction* copy() { return new loading(*this); }
 	virtual void data_prepare() {
@@ -140,7 +151,9 @@ public:
 
 	storing(const string &_rdset, const string &_address) :
 		instruction(), rsrc(-1), address(_address), val(0), pos(-1), offset(0) {
+		write_to_mem = true;
 		rdset = string_to_reg(_rdset);
+		reg_to_read.push_back(rdset);
 		if (data_label.find(address) != data_label.end()) {
 			pos = data_label[address];
 			return;
@@ -149,6 +162,7 @@ public:
 		int j = address.find(')');
 		offset = string_to_int(address.substr(0, i));
 		rsrc = string_to_reg(address.substr(i + 1, j - i - 1));
+		reg_to_read.push_back(rsrc);
 	}
 	virtual instruction* copy() { return new storing(*this); }
 	virtual void data_prepare() {
@@ -162,7 +176,10 @@ class sb : public storing {
 public:
 	sb(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sb(*this); }
-	virtual void memory_access() { memcpy(mem + pos, &val, 1); }
+	virtual void memory_access() { 
+		memcpy(mem + pos, &val, 1); 
+		//cout << "sb: " << char(val) << " " << pos << endl;
+	}
 };
 class sh : public storing {
 public:
@@ -174,17 +191,22 @@ class sw : public storing {
 public:
 	sw(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sw(*this); }
-	virtual void memory_access() { memcpy(mem + pos, &val, 4); }
+	virtual void memory_access() { 
+		memcpy(mem + pos, &val, 4); 
+		//cout << "sw: " << val << " " << pos << endl;
+	}
 };
 
 class assignment : public instruction {
 public:
 	int rdset, rsrc, imm;
 
-	assignment(const string &_rdset, const string &_rsrc) {
+	assignment(const string &_rdset, const string &_rsrc) : instruction() {
 		rdset = string_to_reg(_rdset);
+		reg_to_write.push_back(rdset);
 		rsrc = string_to_reg(_rsrc);
 		if (rsrc == -1) imm = string_to_int(_rsrc);
+		else reg_to_read.push_back(rsrc);
 	}
 	virtual instruction* copy() { return new assignment(*this); }
 	virtual void data_prepare() { if (rsrc != -1) imm = reg[rsrc]; }
@@ -192,15 +214,11 @@ public:
 };
 class mfhi : public assignment {
 public:
-	mfhi(const string &_rdset) : assignment(_rdset, "") {}
-	virtual instruction* copy() { return new mfhi(*this); }
-	virtual void data_prepare() { imm = reg[33]; }
+	mfhi(const string &_rdset) : assignment(_rdset, "$hi") {}
 };
 class mflo : public assignment {
 public:
-	mflo(const string &_rdset) : assignment(_rdset, "") {}
-	virtual instruction* copy() { return new mflo(*this); }
-	virtual void data_prepare() { imm = reg[32]; }
+	mflo(const string &_rdset) : assignment(_rdset, "$lo") {}
 };
 
 class calculation : public instruction {
@@ -208,12 +226,15 @@ public:
 	int rdset, rsrc1, rsrc2;
 	int imm1, imm2, res;
 
-	calculation(const string &_rdset, const string &_rsrc1, const string &_rsrc2) {
+	calculation(const string &_rdset, const string &_rsrc1, const string &_rsrc2) : instruction() {
 		rdset = string_to_reg(_rdset);
+		reg_to_write.push_back(rdset);
 		rsrc1 = string_to_reg(_rsrc1);
 		rsrc2 = string_to_reg(_rsrc2);
 		if (rsrc1 == -1) imm1 = string_to_int(_rsrc1);
+		else reg_to_read.push_back(rsrc1);
 		if (rsrc2 == -1) imm2 = string_to_int(_rsrc2);
+		else reg_to_read.push_back(rsrc2);
 	}
 	virtual instruction* copy() { return new calculation(*this); }
 	virtual void data_prepare() {
@@ -244,7 +265,12 @@ public:
 	bool unsign;
 	long long llres;
 
-	mul(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {}
+	mul(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {
+		if (para == 2) {
+			reg_to_write.push_back(32);
+			reg_to_write.push_back(33);
+		}
+	}
 	virtual instruction* copy() { return new mul(*this); }
 	virtual void data_prepare() {
 		if (para == 2) {
@@ -274,7 +300,14 @@ public:
 	int para, q, r;
 	bool unsign;
 
-	__div(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {}
+	__div(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {
+		if (para == 2) {
+			reg_to_write.push_back(32);
+			reg_to_write.push_back(33);
+		}
+		//cout << "div: " << ph1 << " " << ph2 << " " << ph3 << " " << endl;
+		//cout << reg_to_read.size(), 
+	}
 	virtual instruction* copy() { return new __div(*this); }
 	virtual void data_prepare() {
 		if (para == 2) {
@@ -326,6 +359,7 @@ public:
 	virtual void execute() {
 		if (unsign) res = (unsigned int)imm1 % (unsigned int)imm2;
 		else res = imm1 % imm2;
+		//cout << "rem: " << imm1 << " " << imm2 << endl;
 	}
 };
 class seq : public calculation {
@@ -369,9 +403,10 @@ class jump : public instruction { // b, j, jr
 public:
 	int rsrc, pos;
 
-	jump(const string &label) : rsrc(-1), pos(-1) {
+	jump(const string &label) : instruction(), rsrc(-1), pos(-1) {
 		if (text_label.find(label) != text_label.end()) pos = text_label[label];
-		else rsrc = string_to_reg(label);
+		else rsrc = string_to_reg(label), reg_to_read.push_back(rsrc);
+		jump_type = 1;
 	}
 	virtual instruction* copy() { return new jump(*this); }
 	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
@@ -379,17 +414,20 @@ public:
 		ins_top = pos;
 	}
 };
-class jal : public instruction {
+class jal : public instruction { // jal, jalr
 public:
 	int rsrc, pos;
 
-	jal(const string &label) : rsrc(-1), pos(-1) {
+	jal(const string &label) : instruction(), rsrc(-1), pos(-1) {
 		if (text_label.find(label) != text_label.end()) pos = text_label[label];
-		else rsrc = string_to_reg(label);
+		else rsrc = string_to_reg(label), reg_to_read.push_back(rsrc);
+		jump_type = 1;
+		reg_to_write.push_back(31);
 	}
 	virtual instruction* copy() { return new jal(*this); }
 	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
 	virtual void write_back() {
+		//cout << "ins_top: " << ins_top << endl;
 		reg[31] = ins_top;
 		ins_top = pos;
 	}
@@ -401,12 +439,15 @@ public:
 	int pos;
 	bool judge;
 
-	branch(const string &_rsrc1, const string &_rsrc2, const string &label) {
+	branch(const string &_rsrc1, const string &_rsrc2, const string &label) : instruction() {
 		rsrc1 = string_to_reg(_rsrc1);
 		rsrc2 = string_to_reg(_rsrc2);
 		if (rsrc1 == -1) imm1 = string_to_int(_rsrc1);
+		else reg_to_read.push_back(rsrc1);
 		if (rsrc2 == -1) imm2 = string_to_int(_rsrc2);
+		else reg_to_read.push_back(rsrc2);
 		pos = text_label[label];
+		jump_type = 2;
 	}
 	virtual instruction* copy() { return new branch(*this); }
 	virtual void data_prepare() {
@@ -459,10 +500,17 @@ public:
 	int type, val_a0, val_a1, res;
 	char str[MAXL];
 
-	syscall(istream &_is, ostream &_os) : is(_is), os(_os) {}
+	syscall(istream &_is, ostream &_os) : instruction(), is(_is), os(_os) {
+		reg_to_read.push_back(2);
+		reg_to_read.push_back(4);
+		reg_to_read.push_back(5);
+		reg_to_write.push_back(2);
+		write_to_mem = true;
+	}
 	virtual instruction* copy() { return new syscall(*this); }
 	virtual void data_prepare() {
 		type = reg[2]; // $v0
+		//cout << "syscall: " << type << endl;
 		switch (type) {
 		case 1: case 4: case 9: case 17: val_a0 = reg[4]; break; // $a0
 		case 8:
@@ -476,8 +524,8 @@ public:
 		case 1: os << val_a0; break;
 		case 5: is >> res; break;
 		case 8: is >> str; break;
-		case 10: exit(0); break;
-		case 17: exit(val_a0); break;
+		case 10: shut_down(0); break;
+		case 17: shut_down(val_a0); break;
 		}
 	}
 	virtual void memory_access() {
@@ -504,6 +552,15 @@ public:
 		}
 	}
 };
+
+void shut_down(int val) {
+	for (int i = 0; i < 5; ++i)
+		if (plat[i] != NULL && i > 0 && plat[i] != plat[i - 1]) delete plat[i];
+	vector<instruction*>::iterator it = ins_vec.begin();
+	while (it != ins_vec.end()) delete *(it++);
+	//while (true);
+	exit(val);
+}
 
 // ============================= interpreter ==================================
 class interpreter {
@@ -586,9 +643,7 @@ public:
 		}
 		for (int i = 0; i < ins_cnt; ++i) {
 			string name = name_vec[i];
-			string ph1 = ph1_vec[i];
-			string ph2 = ph2_vec[i];
-			string ph3 = ph3_vec[i];
+			string ph1 = ph1_vec[i], ph2 = ph2_vec[i], ph3 = ph3_vec[i];
 			instruction *ptr = NULL;
 			// loading instruction
 			if (name == "la") ptr = new la(ph1, ph2);
@@ -643,42 +698,106 @@ public:
 			if (name == "syscall") ptr = new syscall(is, os);
 			if (name == "nop") ptr = new instruction();
 			ins_vec.push_back(ptr);
+			
+			//cout << i << ": " << name << " " << ph1 << " " << ph2 << " " << ph3 << " : \n";
+
+			/*
+			auto it = ptr->reg_to_read.begin();
+			while (it != ptr->reg_to_read.end()) cout << *(it++) << " ";
+			cout << endl;
+			it = ptr->reg_to_write.begin();
+			while (it != ptr->reg_to_write.end()) cout << *(it++) << " ";
+			cout << endl;
+			*/
 		}
 	}
 	void execute_text() {
 		ins_top = text_label["main"];
 		int ins_vec_sz = ins_vec.size();
-		int cnt = 0;
-		while (ins_top < ins_vec_sz) {
-			//cout << "ins: " << ins_top << endl;
+		ull reg_to_write = 0;
+		int jump_cnt = 0;
+		int reg_cnt[34], cnt = 0;
+		memset(reg_cnt, 0, sizeof reg_cnt);
+		memset(plat, NULL, sizeof plat);
+		vector<int>::iterator it;
+		while (true) {
+
+			//cout << "$t1: " << reg[9] << endl;
+			//cout << "$a0: " << reg[4] << endl;
+
+			if(false) {
+			cout << ins_top << endl;
 			instruction *ptr = ins_vec[ins_top++]->copy();
 			ptr->data_prepare();
 			ptr->execute();
 			ptr->memory_access();
 			ptr->write_back();
-			delete ptr;
+			}
+			else {
+
+				//if (ins_top > 527) cout << "haha\n";
+			
+			// write back
+			if (plat[4] != NULL) {
+				plat[4]->write_back();
+				jump_cnt -= plat[4]->jump_type;
+				it = plat[4]->reg_to_write.begin();
+				while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
+				delete plat[4];
+				plat[4] = NULL;
+				--cnt;
+			}
+			// memory access
+			bool write_to_mem = false;
+			if (plat[3] != NULL) {
+				plat[3]->memory_access();
+				write_to_mem = plat[3]->write_to_mem;
+			}
+			plat[4] = plat[3];
+			// execute
+			if (plat[2] != NULL) plat[2]->execute();
+			plat[3] = plat[2];
+			// data prepare
+			if (plat[1] != NULL) plat[1]->data_prepare();
+			plat[2] = plat[1];
+			// instruction fetch
+			plat[1] = plat[0];
+			plat[0] = NULL;
+			if (ins_top >= ins_vec_sz) continue;
+			instruction *ptr = ins_vec[ins_top]->copy();
+			bool reg_conflict = false;
+			it = ptr->reg_to_read.begin();
+			while (it != ptr->reg_to_read.end())
+				if (reg_cnt[*(it++)] > 0) reg_conflict = true;
+			if (jump_cnt > 0 || write_to_mem || reg_conflict) delete ptr, ptr = NULL;
+			else {
+				jump_cnt += ptr->jump_type;
+				it = ptr->reg_to_write.begin();
+				while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
+				//cout << ins_top << endl;
+				++ins_top;
+				++cnt;
+			}
+			plat[0] = ptr;
+			}
 		}
-	}
-	~interpreter() {
-		auto it = ins_vec.begin();
-		while (it != ins_vec.end()) delete *(it++);
 	}
 };
 
-int main(int argc, char *argv[]) {
-	//int main() {
+//int main(int argc, char *argv[]) {
+int main() {
 
 	ifstream source;
 	ifstream input;
 
-	source.open(argv[1]);
-	//source.open("spill2-5100379110-daibo.s");
-	//input.open("spill2-5100379110-daibo.in");
+	//source.open(argv[1]);
+	source.open("gcd-5090379042-jiaxiao.s");
+	//input.open("array_test1-mahaojun.in");
 
 	interpreter itp(source, cin, cout);
+	//interpreter itp(source, input, cout);
 	itp.interprete();
+	shut_down(0);
 
-	source.close();
-	input.close();
 	return 0;
 }
