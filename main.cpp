@@ -498,10 +498,12 @@ public:
 	istream &is;
 	ostream &os;
 	int type, val_a0, val_a1, res;
-	char str[MAXL];
+	//char str[MAXL];
+	string str;
 
 	syscall(istream &_is, ostream &_os) : instruction(), is(_is), os(_os) {
-		memset(str, 0, sizeof str);
+		//memset(str, 0, sizeof str);
+		str = "";
 		reg_to_read.push_back(2);
 		reg_to_read.push_back(4);
 		reg_to_read.push_back(5);
@@ -537,7 +539,7 @@ public:
 			while (mem[i]) os << mem[i++];
 			break;
 		case 8:
-			int l = strlen(str);
+			int l = str.length();// strlen(str);
 			i = 0;
 			while (i < l) mem[val_a0 + i] = str[i++];
 			break;
