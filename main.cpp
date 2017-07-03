@@ -587,6 +587,7 @@ public:
 		vector<string> name_vec, ph1_vec, ph2_vec, ph3_vec;
 		bool text_block = false;
 		while (src.getline(str, MAXL, '\n')) {
+			//cout << str << endl;
 			string tmp = "";
 			int i = 0, l = strlen(str);
 			while (str[i] == ' ' || str[i] == '\t') ++i;
@@ -644,6 +645,7 @@ public:
 				ph3_vec.push_back(get_phrase(str, i, l)); ++i;
 			}
 		}
+		//cout << "ins_cnt: " << ins_cnt << endl;
 		for (int i = 0; i < ins_cnt; ++i) {
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i], ph2 = ph2_vec[i], ph3 = ph3_vec[i];
@@ -789,6 +791,8 @@ public:
 
 int main(int argc, char *argv[]) {
 //int main() {
+
+	//cout << "?????\n";
 
 	ifstream source;
 	ifstream input;

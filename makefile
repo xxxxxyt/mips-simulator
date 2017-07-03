@@ -12,7 +12,7 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 IDIR = .
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-$(ODIR)/%.o: %.c* $(DEPS)
+$(ODIR)/%.o: %.cpp $(DEPS)
 	$(shell mkdir -p bin)
 	$(shell mkdir -p obj)
 	$(CC) -c -o $@ $< $(CFLAGS)
