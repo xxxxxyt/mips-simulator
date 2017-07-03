@@ -111,10 +111,7 @@ public:
 		reg_to_read.push_back(rsrc);
 	}
 	virtual instruction* copy() { return new loading(*this); }
-	virtual void data_prepare() {
-		if (pos != -1) return;
-		pos = reg[rsrc];
-	}
+	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
 	virtual void execute() { pos += offset; }
 	virtual void write_back() { reg[rdset] = val; }
 };
@@ -167,8 +164,7 @@ public:
 	virtual instruction* copy() { return new storing(*this); }
 	virtual void data_prepare() {
 		val = reg[rdset];
-		if (pos != -1) return;
-		pos = reg[rsrc];
+		if (rsrc != -1) pos = reg[rsrc];
 	}
 	virtual void execute() { pos += offset; }
 };
@@ -523,6 +519,7 @@ public:
 		}
 	}
 	virtual void execute() {
+		str = "";
 		switch (type) {
 		case 1: os << val_a0; break;
 		case 5: is >> res; break;
@@ -561,7 +558,7 @@ void shut_down(int val) {
 		if (plat[i] != NULL && i > 0 && plat[i] != plat[i - 1]) delete plat[i];
 	vector<instruction*>::iterator it = ins_vec.begin();
 	while (it != ins_vec.end()) delete *(it++);
-	//while (true);
+	while (true);
 	exit(val);
 }
 
@@ -587,6 +584,7 @@ public:
 		vector<string> name_vec, ph1_vec, ph2_vec, ph3_vec;
 		bool text_block = false;
 		while (src.getline(str, MAXL, '\n')) {
+			//cout << str << endl;
 			string tmp = "";
 			int i = 0, l = strlen(str);
 			while (str[i] == ' ' || str[i] == '\t') ++i;
@@ -644,6 +642,7 @@ public:
 				ph3_vec.push_back(get_phrase(str, i, l)); ++i;
 			}
 		}
+		//cout << "ins_cnt: " << ins_cnt << endl;
 		for (int i = 0; i < ins_cnt; ++i) {
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i], ph2 = ph2_vec[i], ph3 = ph3_vec[i];
@@ -730,7 +729,7 @@ public:
 
 			if(true) {
 			//cout << ins_top << endl;
-			instruction *ptr = ins_vec[ins_top++]->copy();
+			instruction *ptr = ins_vec[ins_top++];
 			ptr->data_prepare();
 			ptr->execute();
 			ptr->memory_access();
@@ -790,12 +789,14 @@ public:
 int main(int argc, char *argv[]) {
 //int main() {
 
+	//cout << "?????\n";
+
 	ifstream source;
 	ifstream input;
 
 	source.open(argv[1]);
-	//source.open("string_test-huyuncong.s");
-	//input.open("string_test-huyuncong.in");
+	//source.open("gcd-5090379042-jiaxiao.s");
+	//input.open("gcd-5090379042-jiaxiao.in");
 
 	interpreter itp(source, cin, cout);
 	//interpreter itp(source, input, cout);

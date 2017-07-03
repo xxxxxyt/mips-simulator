@@ -111,10 +111,7 @@ public:
 		reg_to_read.push_back(rsrc);
 	}
 	virtual instruction* copy() { return new loading(*this); }
-	virtual void data_prepare() {
-		if (pos != -1) return;
-		pos = reg[rsrc];
-	}
+	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
 	virtual void execute() { pos += offset; }
 	virtual void write_back() { reg[rdset] = val; }
 };
@@ -167,8 +164,7 @@ public:
 	virtual instruction* copy() { return new storing(*this); }
 	virtual void data_prepare() {
 		val = reg[rdset];
-		if (pos != -1) return;
-		pos = reg[rsrc];
+		if (rsrc != -1) pos = reg[rsrc];
 	}
 	virtual void execute() { pos += offset; }
 };
@@ -523,6 +519,7 @@ public:
 		}
 	}
 	virtual void execute() {
+		str = "";
 		switch (type) {
 		case 1: os << val_a0; break;
 		case 5: is >> res; break;
@@ -732,7 +729,7 @@ public:
 
 			if(true) {
 			//cout << ins_top << endl;
-			instruction *ptr = ins_vec[ins_top++]->copy();
+			instruction *ptr = ins_vec[ins_top++];
 			ptr->data_prepare();
 			ptr->execute();
 			ptr->memory_access();
@@ -798,8 +795,8 @@ int main(int argc, char *argv[]) {
 	ifstream input;
 
 	source.open(argv[1]);
-	//source.open("string_test-huyuncong.s");
-	//input.open("string_test-huyuncong.in");
+	//source.open("gcd-5090379042-jiaxiao.s");
+	//input.open("gcd-5090379042-jiaxiao.in");
 
 	interpreter itp(source, cin, cout);
 	//interpreter itp(source, input, cout);
