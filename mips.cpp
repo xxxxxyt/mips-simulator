@@ -70,9 +70,7 @@ string get_str(char *str, int &i, int l) {
 // ========================= instructions ======================
 class instruction {
 public:
-	int status;
-
-	instruction() : status(0) {}
+	instruction() {}
 	virtual instruction* copy() { return new instruction(*this); }
 	virtual void data_prepare() {}
 	virtual void execute() {}
@@ -402,7 +400,7 @@ public:
 	int pos;
 	bool judge;
 
-	branch(const string &_rsrc1, const string &_rsrc2, const string &label) {
+	branch(const string &_rsrc1, const string &_rsrc2, const string &label) : judge(true) {
 		rsrc1 = string_to_reg(_rsrc1);
 		rsrc2 = string_to_reg(_rsrc2);
 		if (rsrc1 == -1) imm1 = string_to_int(_rsrc1);
@@ -460,7 +458,9 @@ public:
 	int type, val_a0, val_a1, res;
 	char str[MAXL];
 
-	syscall(istream &_is, ostream &_os) : is(_is), os(_os) {}
+	syscall(istream &_is, ostream &_os) : is(_is), os(_os) {
+		memset(str, 0, sizeof str);
+	}
 	virtual instruction* copy() { return new syscall(*this); }
 	virtual void data_prepare() {
 		type = reg[2]; // $v0

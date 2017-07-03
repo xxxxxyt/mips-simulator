@@ -2,8 +2,8 @@ CC = g++
 CFLAGS = -Wall -std=c++11 -O2
 
 ################!! MODIFY HERE !!####################
-_OBJ = scanner.o parser.o main.o simulator.o
-_DEPS = global.hpp scanner.hpp parser.hpp simulator.hpp
+_OBJ = mips.o
+_DEPS = 
 #####################################################
 
 ODIR = obj
