@@ -52,7 +52,7 @@ string get_str(char *str, int &i, int l) {
 	while (i < l) {
 		res += str[i++];
 		if (res.back() == '\\') {
-			char ch = str[i++], real;
+			char ch = str[i++], real = '\0';
 			switch (ch) {
 			case 'n': real = '\n'; break;
 			case 'r': real = '\r'; break;
@@ -172,10 +172,7 @@ class sb : public storing {
 public:
 	sb(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sb(*this); }
-	virtual void memory_access() { 
-		memcpy(mem + pos, &val, 1); 
-		//cout << "sb: " << char(val) << " " << pos << endl;
-	}
+	virtual void memory_access() { memcpy(mem + pos, &val, 1); }
 };
 class sh : public storing {
 public:
@@ -187,10 +184,7 @@ class sw : public storing {
 public:
 	sw(const string &ph1, const string &ph2) : storing(ph1, ph2) {}
 	virtual instruction* copy() { return new sw(*this); }
-	virtual void memory_access() { 
-		memcpy(mem + pos, &val, 4); 
-		//cout << "sw: " << val << " " << pos << endl;
-	}
+	virtual void memory_access() { memcpy(mem + pos, &val, 4); }
 };
 
 class assignment : public instruction {
@@ -301,8 +295,6 @@ public:
 			reg_to_write.push_back(32);
 			reg_to_write.push_back(33);
 		}
-		//cout << "div: " << ph1 << " " << ph2 << " " << ph3 << " " << endl;
-		//cout << reg_to_read.size(), 
 	}
 	virtual instruction* copy() { return new __div(*this); }
 	virtual void data_prepare() {
@@ -355,7 +347,6 @@ public:
 	virtual void execute() {
 		if (unsign) res = (unsigned int)imm1 % (unsigned int)imm2;
 		else res = imm1 % imm2;
-		//cout << "rem: " << imm1 << " " << imm2 << endl;
 	}
 };
 class seq : public calculation {
@@ -423,7 +414,6 @@ public:
 	virtual instruction* copy() { return new jal(*this); }
 	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
 	virtual void write_back() {
-		//cout << "ins_top: " << ins_top << endl;
 		reg[31] = ins_top;
 		ins_top = pos;
 	}
@@ -494,11 +484,9 @@ public:
 	istream &is;
 	ostream &os;
 	int type, val_a0, val_a1, res;
-	//char str[MAXL];
 	string str;
 
 	syscall(istream &_is, ostream &_os) : instruction(), is(_is), os(_os) {
-		//memset(str, 0, sizeof str);
 		str = "";
 		reg_to_read.push_back(2);
 		reg_to_read.push_back(4);
@@ -509,7 +497,6 @@ public:
 	virtual instruction* copy() { return new syscall(*this); }
 	virtual void data_prepare() {
 		type = reg[2]; // $v0
-		//cout << "syscall: " << type << endl;
 		switch (type) {
 		case 1: case 4: case 9: case 17: val_a0 = reg[4]; break; // $a0
 		case 8:
@@ -538,7 +525,7 @@ public:
 		case 8:
 			int l = str.length();// strlen(str);
 			i = 0;
-			while (i < l) mem[val_a0 + i] = str[i++];
+			while (i < l) mem[val_a0 + i] = str[i], ++i;
 			break;
 		}
 	}
@@ -554,8 +541,6 @@ public:
 };
 
 void shut_down(int val) {
-	for (int i = 0; i < 5; ++i)
-		if (plat[i] != NULL && i > 0 && plat[i] != plat[i - 1]) delete plat[i];
 	vector<instruction*>::iterator it = ins_vec.begin();
 	while (it != ins_vec.end()) delete *(it++);
 	//while (true);
@@ -584,7 +569,6 @@ public:
 		vector<string> name_vec, ph1_vec, ph2_vec, ph3_vec;
 		bool text_block = false;
 		while (src.getline(str, MAXL, '\n')) {
-			//cout << str << endl;
 			string tmp = "";
 			int i = 0, l = strlen(str);
 			while (str[i] == ' ' || str[i] == '\t') ++i;
@@ -623,9 +607,7 @@ public:
 					int n = string_to_int(tmp);
 					heap_top += n;
 				}
-				else if (tmp == "data" || tmp == "text") {
-					text_block = tmp == "text";
-				}
+				else if (tmp == "data" || tmp == "text") text_block = tmp == "text";
 			}
 			else if (str[l - 1] == ':') { // label:
 				string tmp = get_phrase(str, i, l - 1);
@@ -642,7 +624,6 @@ public:
 				ph3_vec.push_back(get_phrase(str, i, l)); ++i;
 			}
 		}
-		//cout << "ins_cnt: " << ins_cnt << endl;
 		for (int i = 0; i < ins_cnt; ++i) {
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i], ph2 = ph2_vec[i], ph3 = ph3_vec[i];
@@ -700,52 +681,23 @@ public:
 			if (name == "syscall") ptr = new syscall(is, os);
 			if (name == "nop") ptr = new instruction();
 			ins_vec.push_back(ptr);
-			
-			//cout << i << ": " << name << " " << ph1 << " " << ph2 << " " << ph3 << " : \n";
-
-			/*
-			auto it = ptr->reg_to_read.begin();
-			while (it != ptr->reg_to_read.end()) cout << *(it++) << " ";
-			cout << endl;
-			it = ptr->reg_to_write.begin();
-			while (it != ptr->reg_to_write.end()) cout << *(it++) << " ";
-			cout << endl;
-			*/
 		}
 	}
 	void execute_text() {
 		ins_top = text_label["main"];
 		int ins_vec_sz = ins_vec.size();
-		ull reg_to_write = 0;
 		int jump_cnt = 0;
 		int reg_cnt[34], cnt = 0;
 		memset(reg_cnt, 0, sizeof reg_cnt);
-		memset(plat, NULL, sizeof plat);
+		for (int i = 0; i < 5; ++i) plat[i] = NULL;
 		vector<int>::iterator it;
 		while (true) {
-
-			//cout << "$t1: " << reg[9] << endl;
-			//cout << "$a0: " << reg[4] << endl;
-
-			if(true) {
-			//cout << ins_top << endl;
-			instruction *ptr = ins_vec[ins_top++];
-			ptr->data_prepare();
-			ptr->execute();
-			ptr->memory_access();
-			ptr->write_back();
-			}
-			else {
-
-				//if (ins_top > 527) cout << "haha\n";
-			
 			// write back
 			if (plat[4] != NULL) {
 				plat[4]->write_back();
 				jump_cnt -= plat[4]->jump_type;
 				it = plat[4]->reg_to_write.begin();
 				while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
-				delete plat[4];
 				plat[4] = NULL;
 				--cnt;
 			}
@@ -766,40 +718,32 @@ public:
 			plat[1] = plat[0];
 			plat[0] = NULL;
 			if (ins_top >= ins_vec_sz) continue;
-			instruction *ptr = ins_vec[ins_top]->copy();
+			instruction *ptr = ins_vec[ins_top];
 			bool reg_conflict = false;
 			it = ptr->reg_to_read.begin();
 			while (it != ptr->reg_to_read.end())
 				if (reg_cnt[*(it++)] > 0) reg_conflict = true;
-			if (jump_cnt > 0 || write_to_mem || reg_conflict) delete ptr, ptr = NULL;
+			if (jump_cnt > 0 || write_to_mem || reg_conflict) ptr = NULL;
 			else {
 				jump_cnt += ptr->jump_type;
 				it = ptr->reg_to_write.begin();
 				while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
-				//cout << ins_top << endl;
 				++ins_top;
 				++cnt;
 			}
 			plat[0] = ptr;
-			}
 		}
 	}
 };
 
 int main(int argc, char *argv[]) {
-//int main() {
-
-	//cout << "?????\n";
 
 	ifstream source;
 	ifstream input;
 
 	source.open(argv[1]);
-	//source.open("gcd-5090379042-jiaxiao.s");
-	//input.open("gcd-5090379042-jiaxiao.in");
 
 	interpreter itp(source, cin, cout);
-	//interpreter itp(source, input, cout);
 	itp.interprete();
 	shut_down(0);
 
