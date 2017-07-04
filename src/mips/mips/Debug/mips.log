@@ -1,7 +1,7 @@
 ﻿  main.cpp
 d:\users\dell\documents\git\mips-simulator\src\mips\mips\main.cpp(13): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
-d:\users\dell\documents\git\mips-simulator\src\mips\mips\main.cpp(281): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
 d:\users\dell\documents\git\mips-simulator\src\mips\mips\main.cpp(283): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
-d:\users\dell\documents\git\mips-simulator\src\mips\mips\main.cpp(589): warning C4018: “<”: 有符号/无符号不匹配
+d:\users\dell\documents\git\mips-simulator\src\mips\mips\main.cpp(285): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
+d:\users\dell\documents\git\mips-simulator\src\mips\mips\main.cpp(594): warning C4018: “<”: 有符号/无符号不匹配
   mips.vcxproj -> D:\Users\DELL\Documents\Git\mips-simulator\src\mips\Debug\mips.exe
   mips.vcxproj -> D:\Users\DELL\Documents\Git\mips-simulator\src\mips\Debug\mips.pdb (Partial PDB)

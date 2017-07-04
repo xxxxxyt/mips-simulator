@@ -74,9 +74,8 @@ class instruction {
 public:
 	vector<int> reg_to_read, reg_to_write;
 	int jump_type; // 0 not jump; 1 jump; 2 branch
-	bool write_to_mem;
 
-	instruction() : jump_type(0), write_to_mem(false) {
+	instruction() : jump_type(0) {
 		reg_to_read.clear();
 		reg_to_write.clear();
 	}
@@ -148,7 +147,6 @@ public:
 
 	storing(const string &_rdset, const string &_address) :
 		instruction(), rsrc(-1), address(_address), val(0), pos(-1), offset(0) {
-		write_to_mem = true;
 		rdset = string_to_reg(_rdset);
 		reg_to_read.push_back(rdset);
 		if (data_label.find(address) != data_label.end()) {
@@ -257,6 +255,7 @@ public:
 
 	mul(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {
 		if (para == 2) {
+			reg_to_read.push_back(rdset);
 			reg_to_write.push_back(32);
 			reg_to_write.push_back(33);
 		}
@@ -292,6 +291,7 @@ public:
 
 	__div(const string &ph1, const string &ph2, const string &ph3, bool _unsign) : calculation(ph1, ph2, ph3), para(ph3 == "" ? 2 : 3), unsign(_unsign) {
 		if (para == 2) {
+			reg_to_read.push_back(rdset);
 			reg_to_write.push_back(32);
 			reg_to_write.push_back(33);
 		}
@@ -396,27 +396,28 @@ public:
 		jump_type = 1;
 	}
 	virtual instruction* copy() { return new jump(*this); }
-	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
-	virtual void write_back() {
+	virtual void data_prepare() { 
+		if (rsrc != -1) pos = reg[rsrc]; 
 		ins_top = pos;
 	}
 };
 class jal : public instruction { // jal, jalr
 public:
-	int rsrc, pos;
+	int rsrc, pos, val;
 
-	jal(const string &label) : instruction(), rsrc(-1), pos(-1) {
+	jal(const string &label) : instruction(), rsrc(-1), pos(-1), val(0) {
 		if (text_label.find(label) != text_label.end()) pos = text_label[label];
 		else rsrc = string_to_reg(label), reg_to_read.push_back(rsrc);
 		jump_type = 1;
 		reg_to_write.push_back(31);
 	}
 	virtual instruction* copy() { return new jal(*this); }
-	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
-	virtual void write_back() {
-		reg[31] = ins_top;
+	virtual void data_prepare() { 
+		if (rsrc != -1) pos = reg[rsrc]; 
+		val = ins_top;
 		ins_top = pos;
 	}
+	virtual void write_back() { reg[31] = val; }
 };
 class branch : public instruction {
 public:
@@ -439,8 +440,8 @@ public:
 	virtual void data_prepare() {
 		if (rsrc1 != -1) imm1 = reg[rsrc1];
 		if (rsrc2 != -1) imm2 = reg[rsrc2];
+		ins_top = pos;
 	}
-	virtual void write_back() { if (judge) ins_top = pos; }
 };
 class beq : public branch {
 public:
@@ -492,7 +493,6 @@ public:
 		reg_to_read.push_back(4);
 		reg_to_read.push_back(5);
 		reg_to_write.push_back(2);
-		write_to_mem = true;
 	}
 	virtual instruction* copy() { return new syscall(*this); }
 	virtual void data_prepare() {
@@ -523,7 +523,7 @@ public:
 			while (mem[i]) os << mem[i++];
 			break;
 		case 8:
-			int l = str.length();// strlen(str);
+			int l = str.length();
 			i = 0;
 			while (i < l) mem[val_a0 + i] = str[i], ++i;
 			break;
@@ -628,6 +628,7 @@ public:
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i], ph2 = ph2_vec[i], ph3 = ph3_vec[i];
 			instruction *ptr = NULL;
+			//cout << i << ": " << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
 			// loading instruction
 			if (name == "la") ptr = new la(ph1, ph2);
 			if (name == "lb") ptr = new lb(ph1, ph2);
@@ -686,36 +687,55 @@ public:
 	void execute_text() {
 		ins_top = text_label["main"];
 		int ins_vec_sz = ins_vec.size();
-		int jump_cnt = 0;
-		int reg_cnt[34], cnt = 0;
+		int rec_ins_top = 0, reg_cnt[34], wrong_cnt = 0;
 		memset(reg_cnt, 0, sizeof reg_cnt);
 		for (int i = 0; i < 5; ++i) plat[i] = NULL;
 		vector<int>::iterator it;
+		bool predict = true;
+
 		while (true) {
+
 			// write back
+			plat[4] = plat[3];
 			if (plat[4] != NULL) {
 				plat[4]->write_back();
-				jump_cnt -= plat[4]->jump_type;
 				it = plat[4]->reg_to_write.begin();
 				while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
-				plat[4] = NULL;
-				--cnt;
 			}
 			// memory access
-			bool write_to_mem = false;
-			if (plat[3] != NULL) {
-				plat[3]->memory_access();
-				write_to_mem = plat[3]->write_to_mem;
-			}
-			plat[4] = plat[3];
-			// execute
-			if (plat[2] != NULL) plat[2]->execute();
 			plat[3] = plat[2];
-			// data prepare
-			if (plat[1] != NULL) plat[1]->data_prepare();
+			if (plat[3] != NULL) plat[3]->memory_access();
+			// execute
 			plat[2] = plat[1];
-			// instruction fetch
+			if (plat[2] != NULL) {
+				plat[2]->execute();
+				if (plat[2]->jump_type == 2) {
+					if(predict != ((branch*)plat[2])->judge) {
+						if (plat[0] != NULL) {
+							it = plat[0]->reg_to_write.begin();
+							while (it != plat[0]->reg_to_write.end()) --reg_cnt[*(it++)];
+						}
+						plat[1] = plat[0] = NULL;
+						if (!predict) ins_top = ((branch*)plat[2])->pos;
+						else ins_top = rec_ins_top;
+						++wrong_cnt;
+						if (wrong_cnt > 3) {
+							predict = !predict;
+							wrong_cnt = 0;
+						}
+					}
+					else wrong_cnt = 0;
+				}
+			}
+			// data prepare
 			plat[1] = plat[0];
+			if (plat[1] != NULL) {
+				rec_ins_top = ins_top;
+				plat[1]->data_prepare();
+				if (plat[1]->jump_type == 2 && !predict) 
+					ins_top = rec_ins_top;
+			}
+			// instruction fetch
 			plat[0] = NULL;
 			if (ins_top >= ins_vec_sz) continue;
 			instruction *ptr = ins_vec[ins_top];
@@ -723,13 +743,11 @@ public:
 			it = ptr->reg_to_read.begin();
 			while (it != ptr->reg_to_read.end())
 				if (reg_cnt[*(it++)] > 0) reg_conflict = true;
-			if (jump_cnt > 0 || write_to_mem || reg_conflict) ptr = NULL;
+			if (reg_conflict) ptr = NULL;
 			else {
-				jump_cnt += ptr->jump_type;
 				it = ptr->reg_to_write.begin();
 				while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
 				++ins_top;
-				++cnt;
 			}
 			plat[0] = ptr;
 		}
@@ -737,11 +755,13 @@ public:
 };
 
 int main(int argc, char *argv[]) {
+//int main() {
 
 	ifstream source;
 	ifstream input;
 
 	source.open(argv[1]);
+	//source.open("gcd-5090379042-jiaxiao.s");
 
 	interpreter itp(source, cin, cout);
 	itp.interprete();
