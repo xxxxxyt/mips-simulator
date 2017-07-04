@@ -692,9 +692,7 @@ public:
 		for (int i = 0; i < 5; ++i) plat[i] = NULL;
 		vector<int>::iterator it;
 		bool predict = true;
-
 		while (true) {
-
 			// write back
 			plat[4] = plat[3];
 			if (plat[4] != NULL) {
@@ -755,14 +753,9 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-//int main() {
 
 	ifstream source;
-	ifstream input;
-
 	source.open(argv[1]);
-	//source.open("gcd-5090379042-jiaxiao.s");
-
 	interpreter itp(source, cin, cout);
 	itp.interprete();
 	shut_down(0);
