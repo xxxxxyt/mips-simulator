@@ -424,7 +424,7 @@ public:
 	int rsrc1, rsrc2;
 	int imm1, imm2;
 	int pos;
-	bool judge;
+	bool judge, predict;
 
 	branch(const string &_rsrc1, const string &_rsrc2, const string &label) : instruction(), judge(false) {
 		rsrc1 = string_to_reg(_rsrc1);
@@ -687,11 +687,11 @@ public:
 	void execute_text() {
 		ins_top = text_label["main"];
 		int ins_vec_sz = ins_vec.size();
-		int rec_ins_top = 0, reg_cnt[34], wrong_cnt = 0;
+		int rec_ins_top = 0, reg_cnt[34], wrong_cnt = 0, predict_cnt = 0;
 		memset(reg_cnt, 0, sizeof reg_cnt);
 		for (int i = 0; i < 5; ++i) plat[i] = NULL;
 		vector<int>::iterator it;
-		bool predict = true;
+		unsigned int predict = 0;
 		while (true) {
 			// write back
 			plat[4] = plat[3];
@@ -708,21 +708,21 @@ public:
 			if (plat[2] != NULL) {
 				plat[2]->execute();
 				if (plat[2]->jump_type == 2) {
-					if(predict != ((branch*)plat[2])->judge) {
+					++predict_cnt;
+					bool judge = ((branch*)plat[2])->judge;
+					bool _predict = ((branch*)plat[2])->predict;
+					if(_predict != judge) {
 						if (plat[0] != NULL) {
 							it = plat[0]->reg_to_write.begin();
 							while (it != plat[0]->reg_to_write.end()) --reg_cnt[*(it++)];
 						}
 						plat[1] = plat[0] = NULL;
-						if (!predict) ins_top = ((branch*)plat[2])->pos;
+						if (!_predict) ins_top = ((branch*)plat[2])->pos;
 						else ins_top = rec_ins_top;
 						++wrong_cnt;
-						if (wrong_cnt > 3) {
-							predict = !predict;
-							wrong_cnt = 0;
-						}
 					}
-					else wrong_cnt = 0;
+					predict >>= 1;
+					predict |= (judge << 1);
 				}
 			}
 			// data prepare
@@ -730,8 +730,10 @@ public:
 			if (plat[1] != NULL) {
 				rec_ins_top = ins_top;
 				plat[1]->data_prepare();
-				if (plat[1]->jump_type == 2 && !predict) 
-					ins_top = rec_ins_top;
+				if (plat[1]->jump_type == 2) {
+					((branch*)plat[1])->predict = (predict & 1);
+					if(!(predict & 1)) ins_top = rec_ins_top;
+				}
 			}
 			// instruction fetch
 			plat[0] = NULL;
