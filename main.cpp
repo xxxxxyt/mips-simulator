@@ -544,7 +544,7 @@ int wrong_cnt = 0, predict_cnt = 0;
 void shut_down(int val) {
 	vector<instruction*>::iterator it = ins_vec.begin();
 	while (it != ins_vec.end()) delete *(it++);
-	//cout << 1.00 - 1.00 * wrong_cnt / predict_cnt << endl;
+	//cout << endl << 1.00 - 1.00 * wrong_cnt / predict_cnt << " in " << predict_cnt << endl;
 	//while (true);
 	exit(val);
 }
@@ -686,9 +686,9 @@ public:
 		}
 	}
 	void execute_text() {
-		const int MOD = 256;
-		int cnt[MOD];
-		bool branch_in = false, predict[MOD];
+		const int MOD = 256, S = 8;
+		int cnt[MOD][S], status = 0;
+		bool branch_in = false, predict[MOD][1 << S];
 		memset(cnt, 0, sizeof cnt);
 		memset(predict, false, sizeof predict);
 
@@ -730,12 +730,13 @@ public:
 						if (!_predict) ins_top = ((branch*)plat[2])->pos;
 						else ins_top = rec_ins_top;
 						++wrong_cnt;
-						if (++cnt[index] == 2) {
-							predict[index] = !predict[index];
-							cnt[index] = 0;
+						if (++cnt[index][status] == 2) {
+							predict[index][status] = !predict[index][status];
+							cnt[index][status] = 0;
 						}
 					}
-					else cnt[index] = 0;
+					else cnt[index][status] = 0;
+					status = (status >> 1) | (judge << (S - 1));
 				}
 			}
 			// data prepare
@@ -745,8 +746,8 @@ public:
 				plat[1]->data_prepare();
 				if (plat[1]->jump_type == 2) {
 					int index = rec_ins_top % MOD;
-					((branch*)plat[1])->predict = predict[index];
-					if (!predict[index]) ins_top = rec_ins_top;
+					((branch*)plat[1])->predict = predict[index][status];
+					if (!predict[index][status]) ins_top = rec_ins_top;
 				}
 			}
 			// instruction fetch
