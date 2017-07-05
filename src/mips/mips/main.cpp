@@ -396,8 +396,8 @@ public:
 		jump_type = 1;
 	}
 	virtual instruction* copy() { return new jump(*this); }
-	virtual void data_prepare() { 
-		if (rsrc != -1) pos = reg[rsrc]; 
+	virtual void data_prepare() {
+		if (rsrc != -1) pos = reg[rsrc];
 		ins_top = pos;
 	}
 };
@@ -412,8 +412,8 @@ public:
 		reg_to_write.push_back(31);
 	}
 	virtual instruction* copy() { return new jal(*this); }
-	virtual void data_prepare() { 
-		if (rsrc != -1) pos = reg[rsrc]; 
+	virtual void data_prepare() {
+		if (rsrc != -1) pos = reg[rsrc];
 		val = ins_top;
 		ins_top = pos;
 	}
@@ -540,9 +540,12 @@ public:
 	}
 };
 
+int wrong_cnt = 0, predict_cnt = 0;
 void shut_down(int val) {
 	vector<instruction*>::iterator it = ins_vec.begin();
 	while (it != ins_vec.end()) delete *(it++);
+	cout << wrong_cnt << " " << predict_cnt << endl;
+	cout << 1.00 - 1.00 * wrong_cnt / predict_cnt << endl;
 	//while (true);
 	exit(val);
 }
@@ -628,7 +631,6 @@ public:
 			string name = name_vec[i];
 			string ph1 = ph1_vec[i], ph2 = ph2_vec[i], ph3 = ph3_vec[i];
 			instruction *ptr = NULL;
-			//cout << i << ": " << name << " " << ph1 << " " << ph2 << " " << ph3 << endl;
 			// loading instruction
 			if (name == "la") ptr = new la(ph1, ph2);
 			if (name == "lb") ptr = new lb(ph1, ph2);
@@ -685,17 +687,24 @@ public:
 		}
 	}
 	void execute_text() {
+		const int M = 20000;
+		int cnt[M];
+		bool branch_in = false, predict[M];// = true;
+		memset(cnt, 0, sizeof cnt);
+
 		ins_top = text_label["main"];
-		int ins_vec_sz = ins_vec.size();
-		int rec_ins_top = 0, reg_cnt[34], wrong_cnt = 0, predict_cnt = 0;
+		int ins_vec_sz = ins_vec.size(), rec_ins_top = 0;
+		int reg_cnt[34];// , cnt = 0;
 		memset(reg_cnt, 0, sizeof reg_cnt);
+
 		for (int i = 0; i < 5; ++i) plat[i] = NULL;
 		vector<int>::iterator it;
-		unsigned int predict = 0;
+
 		while (true) {
 			// write back
 			plat[4] = plat[3];
 			if (plat[4] != NULL) {
+				if (plat[4]->jump_type == 2) branch_in = false;
 				plat[4]->write_back();
 				it = plat[4]->reg_to_write.begin();
 				while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
@@ -709,9 +718,10 @@ public:
 				plat[2]->execute();
 				if (plat[2]->jump_type == 2) {
 					++predict_cnt;
+					int index = rec_ins_top % M;
 					bool judge = ((branch*)plat[2])->judge;
 					bool _predict = ((branch*)plat[2])->predict;
-					if(_predict != judge) {
+					if (_predict != judge) {
 						if (plat[0] != NULL) {
 							it = plat[0]->reg_to_write.begin();
 							while (it != plat[0]->reg_to_write.end()) --reg_cnt[*(it++)];
@@ -720,9 +730,12 @@ public:
 						if (!_predict) ins_top = ((branch*)plat[2])->pos;
 						else ins_top = rec_ins_top;
 						++wrong_cnt;
+						if (++cnt[index] == 2) {
+							predict[index] = !predict[index];
+							cnt[index] = 0;
+						}
 					}
-					predict >>= 1;
-					predict |= (judge << 1);
+					else cnt[index] = 0;
 				}
 			}
 			// data prepare
@@ -731,20 +744,23 @@ public:
 				rec_ins_top = ins_top;
 				plat[1]->data_prepare();
 				if (plat[1]->jump_type == 2) {
-					((branch*)plat[1])->predict = (predict & 1);
-					if(!(predict & 1)) ins_top = rec_ins_top;
+					int index = rec_ins_top % M;
+					((branch*)plat[1])->predict = predict[index];
+					if (!predict[index]) ins_top = rec_ins_top;
 				}
 			}
 			// instruction fetch
 			plat[0] = NULL;
 			if (ins_top >= ins_vec_sz) continue;
 			instruction *ptr = ins_vec[ins_top];
+			if (branch_in && ptr->jump_type == 2) continue;
 			bool reg_conflict = false;
 			it = ptr->reg_to_read.begin();
 			while (it != ptr->reg_to_read.end())
 				if (reg_cnt[*(it++)] > 0) reg_conflict = true;
 			if (reg_conflict) ptr = NULL;
 			else {
+				if (ptr->jump_type == 2) branch_in = true;
 				it = ptr->reg_to_write.begin();
 				while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
 				++ins_top;
