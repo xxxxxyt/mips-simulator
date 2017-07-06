@@ -12,13 +12,18 @@
 using namespace std;
 
 typedef unsigned long long ull;
-int reg[34]; // lo 32, hi 33
+atomic<int> reg[34]; // lo 32, hi 33
 int heap_top = 0, ins_top = 0;
 char mem[MAXN];
 map<string, int> text_label, data_label;
 
 vector<instruction*> ins_vec;
-instruction *plat[5];
+
+mutex mtx;
+condition_variable jum;
+condition_variable reg_taken[34];
+condition_variable rep_empty[4];
+deque<instruction*> rep[4];
 
 void shut_down(int val) {
 	vector<instruction*>::iterator it = ins_vec.begin();

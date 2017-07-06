@@ -1,7 +1,6 @@
 #ifndef _interpreter_h
 #define _interpreter_h
 
-#include <thread>
 #include "state.h"
 #include "instruction.hpp"
 using namespace std;

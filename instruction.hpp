@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include <cstring>
+#include <thread>
 #include "state.h"
 #include "tool.h"
 using namespace std;

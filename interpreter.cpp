@@ -138,34 +138,58 @@ void interpreter::read_in() {
 }
 
 void interpreter::write_back() {
-	plat[4] = plat[3];
-	if (plat[4] != NULL) {
-		plat[4]->write_back();
-		jump_cnt -= plat[4]->jump_type;
-		auto it = plat[4]->reg_to_write.begin();
-		while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
-	}
+	unique_lock<mutex> lock(mtx);
+	while (rep[3].empty()) rep_empty[3].wait(lock);
+	instruction* ptr = rep[3].front();
+	rep[3].pop_front();
+
+	ptr->write_back();
+	jump_cnt -= ptr->jump_type;
+	if (jump_cnt == 0) jum.notify_all();
+	auto it = ptr->reg_to_write.begin();
+	while (it != ptr->reg_to_write.end()) --reg_cnt[*(it++)];
 }
 
 void interpreter::memory_access() {
-	plat[3] = plat[2];
-	if (plat[3] != NULL) plat[3]->memory_access();
+	unique_lock<mutex> lock(mtx);
+	while (rep[2].empty()) rep_empty[2].wait(lock);
+	instruction* ptr = rep[2].front();
+	rep[2].pop_front();
+	
+	ptr->memory_access();
+
+	rep[3].push_back(ptr);
+	rep_empty[3].notify_all();
 }
 
 void interpreter::execute() {
-	plat[2] = plat[1];
-	if (plat[2] != NULL) plat[2]->execute();
+	unique_lock<mutex> lock(mtx);
+	while (rep[1].empty()) rep_empty[1].wait(lock);
+	instruction* ptr = rep[1].front();
+	rep[1].pop_front();
+	
+	ptr->execute();
+
+	rep[2].push_back(ptr);
+	rep_empty[2].notify_all();
 }
 
 void interpreter::data_prepare() {
-	plat[1] = plat[0];
-	if (plat[1] != NULL) plat[1]->data_prepare();
+	unique_lock<mutex> lock(mtx);
+	while (rep[0].empty()) rep_empty[0].wait(lock);
+	instruction* ptr = rep[0].front();
+	rep[0].pop_front();
+	
+	ptr->data_prepare();
+
+	rep[1].push_back(ptr);
+	rep_empty[1].notify_all();
 }
 
 void interpreter::instruction_fetch() {
-	plat[0] = NULL;
-	if (ins_top >= ins_vec_sz) return;
-	if (jump_cnt > 0) return;
+	unique_lock<mutex> lock(mtx);
+	while (jump_cnt > 0) jum.wait(lock);
+
 	instruction *ptr = ins_vec[ins_top];
 	bool reg_conflict = false;
 	auto it = ptr->reg_to_read.begin();
@@ -178,7 +202,9 @@ void interpreter::instruction_fetch() {
 		while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
 		++ins_top;
 	}
-	plat[0] = ptr;
+
+	rep[0].push_back(ptr);
+	rep_empty[1].notify_all();
 }
 
 void interpreter::run() {
@@ -186,14 +212,14 @@ void interpreter::run() {
 	ins_vec_sz = ins_vec.size();
 	ins_top = text_label["main"];
 	memset(reg_cnt, 0, sizeof reg_cnt);
-	for (int i = 0; i < 5; ++i) plat[i] = NULL;
 
 	while (true) {
-		write_back();
-		memory_access();
-		execute();
-		data_prepare();
-		instruction_fetch();
-		//cout << "haha\n";
+		thread t[5];
+		t[0] = thread(bind(&interpreter::write_back, this));
+		t[1] = thread(bind(&interpreter::memory_access, this));
+		t[2] = thread(bind(&interpreter::execute, this));
+		t[3] = thread(bind(&interpreter::data_prepare, this));
+		t[4] = thread(bind(&interpreter::instruction_fetch, this));
+		for (int i = 0; i < 5; ++i) t[i].join();
 	}
 }
