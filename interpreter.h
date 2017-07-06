@@ -13,9 +13,9 @@ public:
 	ifstream &src;
 	istream &is;
 	ostream &os;
-	int cnt[MOD][S], status;
-	bool branch_in = false, predict[MOD][1 << S];
-	int ins_vec_sz, rec_ins_top;
+	int pre_cnt[MOD][S], status;
+	bool predict[MOD][1 << S];
+	int ins_vec_sz;
 	int reg_cnt[34];
 
 	interpreter(ifstream &_src, istream &_is, ostream &_os);

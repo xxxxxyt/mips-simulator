@@ -15,7 +15,7 @@ extern void shut_down(int val);
 class instruction {
 public:
 	vector<int> reg_to_read, reg_to_write;
-	int jump_type; // 0 not jump; 1 jump; 2 branch
+	int line, jump_type; // 0 not jump; 1 jump; 2 branch
 
 	instruction() : jump_type(0) {
 		reg_to_read.clear();

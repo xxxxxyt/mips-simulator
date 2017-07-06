@@ -131,6 +131,8 @@ void interpreter::read_in() {
 		// syscall instruction
 		if (name == "syscall") ptr = new syscall(is, os);
 		if (name == "nop") ptr = new instruction();
+		
+		ptr->line = i;
 		ins_vec.push_back(ptr);
 	}
 }
@@ -138,7 +140,6 @@ void interpreter::read_in() {
 void interpreter::write_back() {
 	plat[4] = plat[3];
 	if (plat[4] != NULL) {
-		if (plat[4]->jump_type == 2) branch_in = false;
 		plat[4]->write_back();
 		auto it = plat[4]->reg_to_write.begin();
 		while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
@@ -156,7 +157,8 @@ void interpreter::execute() {
 		plat[2]->execute();
 		if (plat[2]->jump_type == 2) {
 			++predict_cnt;
-			int index = rec_ins_top % MOD;
+			int line = plat[2]->line;
+			int index = line % MOD;
 			bool judge = ((branch*)plat[2])->judge;
 			bool _predict = ((branch*)plat[2])->predict;
 			if (_predict != judge) {
@@ -166,14 +168,14 @@ void interpreter::execute() {
 				}
 				plat[1] = plat[0] = NULL;
 				if (!_predict) ins_top = ((branch*)plat[2])->pos;
-				else ins_top = rec_ins_top;
+				else ins_top = line + 1;
 				++wrong_cnt;
-				if (++cnt[index][status] == 2) {
+				if (++pre_cnt[index][status] == 2) {
 					predict[index][status] = !predict[index][status];
-					cnt[index][status] = 0;
+					pre_cnt[index][status] = 0;
 				}
 			}
-			else cnt[index][status] = 0;
+			else pre_cnt[index][status] = 0;
 			status = (status >> 1) | (judge << (S - 1));
 		}
 	}
@@ -182,12 +184,12 @@ void interpreter::execute() {
 void interpreter::data_prepare() {
 	plat[1] = plat[0];
 	if (plat[1] != NULL) {
-		rec_ins_top = ins_top;
 		plat[1]->data_prepare();
 		if (plat[1]->jump_type == 2) {
-			int index = rec_ins_top % MOD;
+			int line = plat[1]->line;
+			int index = line % MOD;
 			((branch*)plat[1])->predict = predict[index][status];
-			if (!predict[index][status]) ins_top = rec_ins_top;
+			if (!predict[index][status]) ins_top = line + 1;
 		}
 	}
 }
@@ -196,14 +198,12 @@ void interpreter::instruction_fetch() {
 	plat[0] = NULL;
 	if (ins_top >= ins_vec_sz) return;
 	instruction *ptr = ins_vec[ins_top];
-	if (branch_in && ptr->jump_type == 2) return;
 	bool reg_conflict = false;
 	auto it = ptr->reg_to_read.begin();
 	while (it != ptr->reg_to_read.end())
 		if (reg_cnt[*(it++)] > 0) reg_conflict = true;
 	if (reg_conflict) ptr = NULL;
 	else {
-		if (ptr->jump_type == 2) branch_in = true;
 		it = ptr->reg_to_write.begin();
 		while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
 		++ins_top;
@@ -213,10 +213,8 @@ void interpreter::instruction_fetch() {
 
 void interpreter::run() {
 	status = 0;
-	branch_in = false;
 	ins_vec_sz = ins_vec.size();
-	rec_ins_top = 0;
-	memset(cnt, 0, sizeof cnt);
+	memset(pre_cnt, 0, sizeof pre_cnt);
 	memset(predict, false, sizeof predict);
 	ins_top = text_label["main"];
 	memset(reg_cnt, 0, sizeof reg_cnt);
