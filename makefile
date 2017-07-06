@@ -2,8 +2,8 @@ CC = g++
 CFLAGS = -Wall -std=c++11 -O2
 
 ################!! MODIFY HERE !!####################
-_OBJ = main.o
-_DEPS = 
+_OBJ = main.o interpreter.o tool.o
+_DEPS = instruction.hpp interpreter.h state.h tool.h
 #####################################################
 
 ODIR = obj
