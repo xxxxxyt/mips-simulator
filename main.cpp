@@ -20,12 +20,9 @@ map<string, int> text_label, data_label;
 vector<instruction*> ins_vec;
 instruction *plat[5];
 
-int wrong_cnt = 0, predict_cnt = 0;
-
 void shut_down(int val) {
 	vector<instruction*>::iterator it = ins_vec.begin();
 	while (it != ins_vec.end()) delete *(it++);
-	//cout << endl << 1.00 - 1.00 * wrong_cnt / predict_cnt << " in " << predict_cnt << endl;
 	//while (true);
 	exit(val);
 }

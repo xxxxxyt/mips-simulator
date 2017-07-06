@@ -19,6 +19,4 @@ extern map<string, int> text_label, data_label;
 extern vector<instruction*> ins_vec;
 extern instruction *plat[5];
 
-extern int wrong_cnt, predict_cnt;
-
 #endif

@@ -336,10 +336,8 @@ public:
 		jump_type = 1;
 	}
 	virtual instruction* copy() { return new jump(*this); }
-	virtual void data_prepare() {
-		if (rsrc != -1) pos = reg[rsrc];
-		ins_top = pos;
-	}
+	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
+	virtual void write_back() { ins_top = pos; }
 };
 class jal : public instruction { // jal, jalr
 public:
@@ -352,12 +350,11 @@ public:
 		reg_to_write.push_back(31);
 	}
 	virtual instruction* copy() { return new jal(*this); }
-	virtual void data_prepare() {
-		if (rsrc != -1) pos = reg[rsrc];
-		val = ins_top;
+	virtual void data_prepare() { if (rsrc != -1) pos = reg[rsrc]; }
+	virtual void write_back() { 
+		reg[31] = ins_top; 
 		ins_top = pos;
 	}
-	virtual void write_back() { reg[31] = val; }
 };
 class branch : public instruction {
 public:
@@ -380,8 +377,8 @@ public:
 	virtual void data_prepare() {
 		if (rsrc1 != -1) imm1 = reg[rsrc1];
 		if (rsrc2 != -1) imm2 = reg[rsrc2];
-		ins_top = pos;
 	}
+	virtual void write_back() { if (judge) ins_top = pos; }
 };
 class beq : public branch {
 public:

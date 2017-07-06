@@ -141,6 +141,7 @@ void interpreter::write_back() {
 	plat[4] = plat[3];
 	if (plat[4] != NULL) {
 		plat[4]->write_back();
+		jump_cnt -= plat[4]->jump_type;
 		auto it = plat[4]->reg_to_write.begin();
 		while (it != plat[4]->reg_to_write.end()) --reg_cnt[*(it++)];
 	}
@@ -153,50 +154,18 @@ void interpreter::memory_access() {
 
 void interpreter::execute() {
 	plat[2] = plat[1];
-	if (plat[2] != NULL) {
-		plat[2]->execute();
-		if (plat[2]->jump_type == 2) {
-			++predict_cnt;
-			int line = plat[2]->line;
-			int index = line % MOD;
-			bool judge = ((branch*)plat[2])->judge;
-			bool _predict = ((branch*)plat[2])->predict;
-			if (_predict != judge) {
-				if (plat[0] != NULL) {
-					auto it = plat[0]->reg_to_write.begin();
-					while (it != plat[0]->reg_to_write.end()) --reg_cnt[*(it++)];
-				}
-				plat[1] = plat[0] = NULL;
-				if (!_predict) ins_top = ((branch*)plat[2])->pos;
-				else ins_top = line + 1;
-				++wrong_cnt;
-				if (++pre_cnt[index][status] == 2) {
-					predict[index][status] = !predict[index][status];
-					pre_cnt[index][status] = 0;
-				}
-			}
-			else pre_cnt[index][status] = 0;
-			status = (status >> 1) | (judge << (S - 1));
-		}
-	}
+	if (plat[2] != NULL) plat[2]->execute();
 }
 
 void interpreter::data_prepare() {
 	plat[1] = plat[0];
-	if (plat[1] != NULL) {
-		plat[1]->data_prepare();
-		if (plat[1]->jump_type == 2) {
-			int line = plat[1]->line;
-			int index = line % MOD;
-			((branch*)plat[1])->predict = predict[index][status];
-			if (!predict[index][status]) ins_top = line + 1;
-		}
-	}
+	if (plat[1] != NULL) plat[1]->data_prepare();
 }
 
 void interpreter::instruction_fetch() {
 	plat[0] = NULL;
 	if (ins_top >= ins_vec_sz) return;
+	if (jump_cnt > 0) return;
 	instruction *ptr = ins_vec[ins_top];
 	bool reg_conflict = false;
 	auto it = ptr->reg_to_read.begin();
@@ -204,6 +173,7 @@ void interpreter::instruction_fetch() {
 		if (reg_cnt[*(it++)] > 0) reg_conflict = true;
 	if (reg_conflict) ptr = NULL;
 	else {
+		jump_cnt += ptr->jump_type;
 		it = ptr->reg_to_write.begin();
 		while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
 		++ins_top;
@@ -212,10 +182,8 @@ void interpreter::instruction_fetch() {
 }
 
 void interpreter::run() {
-	status = 0;
+	jump_cnt = 0;
 	ins_vec_sz = ins_vec.size();
-	memset(pre_cnt, 0, sizeof pre_cnt);
-	memset(predict, false, sizeof predict);
 	ins_top = text_label["main"];
 	memset(reg_cnt, 0, sizeof reg_cnt);
 	for (int i = 0; i < 5; ++i) plat[i] = NULL;
@@ -226,5 +194,6 @@ void interpreter::run() {
 		execute();
 		data_prepare();
 		instruction_fetch();
+		//cout << "haha\n";
 	}
 }

@@ -13,10 +13,8 @@ public:
 	ifstream &src;
 	istream &is;
 	ostream &os;
-	int pre_cnt[MOD][S], status;
-	bool predict[MOD][1 << S];
 	int ins_vec_sz;
-	int reg_cnt[34];
+	int reg_cnt[34], jump_cnt;
 
 	interpreter(ifstream &_src, istream &_is, ostream &_os);
 	void interprete();
