@@ -5,15 +5,13 @@
 #include "instruction.hpp"
 using namespace std;
 
-const int MOD = 256, S = 8;
-
 class interpreter {
 public:
 	ifstream &src;
 	istream &is;
 	ostream &os;
-	int ins_vec_sz;
-	int reg_cnt[34], jump_cnt;
+	atomic<int> jump_cnt;
+	atomic<instruction*> rep[4];
 
 	interpreter(ifstream &_src, istream &_is, ostream &_os);
 	void interprete();

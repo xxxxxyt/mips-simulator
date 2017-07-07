@@ -13,7 +13,7 @@ void interpreter::interprete() {
 	read_in();
 	run();
 }
-
+                                                    
 void interpreter::read_in() {
 	char str[MAXL];
 	int ins_cnt = 0;
@@ -137,81 +137,63 @@ void interpreter::read_in() {
 	}
 }
 
-void interpreter::write_back() {
-	unique_lock<mutex> lock(mtx);
-	while (rep[3].empty()) rep_empty[3].wait(lock);
-	instruction* ptr = rep[3].front();
-	rep[3].pop_front();
+void interpreter::write_back() { // rep: 3 -> ...
+	while (rep[3] == NULL);
+	instruction* ptr = rep[3];
+	rep[3] = NULL;
 
 	ptr->write_back();
 	jump_cnt -= ptr->jump_type;
-	if (jump_cnt == 0) jum.notify_all();
-	auto it = ptr->reg_to_write.begin();
-	while (it != ptr->reg_to_write.end()) --reg_cnt[*(it++)];
 }
 
-void interpreter::memory_access() {
-	unique_lock<mutex> lock(mtx);
-	while (rep[2].empty()) rep_empty[2].wait(lock);
-	instruction* ptr = rep[2].front();
-	rep[2].pop_front();
+void interpreter::memory_access() { // rep: 2 -> 3
+	while (rep[2] == NULL);
+	instruction* ptr = rep[2];
+	rep[2] = NULL;
 	
 	ptr->memory_access();
 
-	rep[3].push_back(ptr);
-	rep_empty[3].notify_all();
+	while (rep[3] != NULL);
+	rep[3] = ptr;
 }
 
-void interpreter::execute() {
-	unique_lock<mutex> lock(mtx);
-	while (rep[1].empty()) rep_empty[1].wait(lock);
-	instruction* ptr = rep[1].front();
-	rep[1].pop_front();
+void interpreter::execute() { // rep: 1 -> 2
+	while (rep[1] == NULL);
+	instruction* ptr = rep[1];
+	rep[1] = NULL;
 	
 	ptr->execute();
 
-	rep[2].push_back(ptr);
-	rep_empty[2].notify_all();
+	while (rep[2] != NULL);
+	rep[2] = ptr;
 }
 
-void interpreter::data_prepare() {
-	unique_lock<mutex> lock(mtx);
-	while (rep[0].empty()) rep_empty[0].wait(lock);
-	instruction* ptr = rep[0].front();
-	rep[0].pop_front();
+void interpreter::data_prepare() { // rep: 0 -> 1
+	while (rep[0] == NULL);
+	instruction* ptr = rep[0];
+	rep[0] = NULL;
 	
 	ptr->data_prepare();
 
-	rep[1].push_back(ptr);
-	rep_empty[1].notify_all();
+	while (rep[1] != NULL);
+	rep[1] = ptr;
 }
 
-void interpreter::instruction_fetch() {
-	unique_lock<mutex> lock(mtx);
-	while (jump_cnt > 0) jum.wait(lock);
+void interpreter::instruction_fetch() { // rep: ... -> 0
+	while (jump_cnt > 0);
 
 	instruction *ptr = ins_vec[ins_top];
-	bool reg_conflict = false;
-	auto it = ptr->reg_to_read.begin();
-	while (it != ptr->reg_to_read.end())
-		if (reg_cnt[*(it++)] > 0) reg_conflict = true;
-	if (reg_conflict) ptr = NULL;
-	else {
-		jump_cnt += ptr->jump_type;
-		it = ptr->reg_to_write.begin();
-		while (it != ptr->reg_to_write.end()) ++reg_cnt[*(it++)];
-		++ins_top;
-	}
+	jump_cnt += ptr->jump_type;
+	++ins_top;
 
-	rep[0].push_back(ptr);
-	rep_empty[1].notify_all();
+	while (rep[0] != NULL);
+	rep[0] = ptr;
 }
 
 void interpreter::run() {
 	jump_cnt = 0;
-	ins_vec_sz = ins_vec.size();
 	ins_top = text_label["main"];
-	memset(reg_cnt, 0, sizeof reg_cnt);
+	for (int i = 0; i < 4; ++i) rep[i] = NULL;
 
 	while (true) {
 		thread t[5];

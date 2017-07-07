@@ -19,10 +19,7 @@ map<string, int> text_label, data_label;
 
 vector<instruction*> ins_vec;
 
-mutex mtx;
-condition_variable jum;
-condition_variable reg_taken[34];
-condition_variable rep_empty[4];
+atomic<bool> reg_taken[34];
 deque<instruction*> rep[4];
 
 void shut_down(int val) {

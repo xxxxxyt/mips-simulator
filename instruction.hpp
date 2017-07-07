@@ -446,7 +446,6 @@ public:
 	virtual void execute() {
 		str = "";
 		switch (type) {
-		case 1: os << val_a0; break;
 		case 5: is >> res; break;
 		case 8: is >> str; break;
 		case 10: shut_down(0); break;
@@ -456,6 +455,7 @@ public:
 	virtual void memory_access() {
 		int i;
 		switch (type) {
+		case 1: os << val_a0; break;
 		case 4:
 			i = val_a0;
 			while (mem[i]) os << mem[i++];
