@@ -12,7 +12,7 @@
 using namespace std;
 
 typedef unsigned long long ull;
-atomic<int> reg[34]; // lo 32, hi 33
+atomic<int> reg[34], reg_cnt[34]; // lo 32, hi 33
 int heap_top = 0, ins_top = 0;
 char mem[MAXN];
 map<string, int> text_label, data_label;
